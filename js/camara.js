@@ -33,11 +33,26 @@ const State = {
 };
 
 // Fórmulas bonitas (fracciones apiladas, raíces, exponentes). Si algo falla, texto plano.
-function fmt(t){
-  try{
-    const x = String(t).replace(/sqrt\s*\(/gi, "√(").replace(/\*/g, "·").replace(/\bsin\b/g, "sen");
-    return `<span class="math">${colorMath(x)}</span>`;
+const SUP = { "²": "^2", "³": "^3", "⁴": "^4", "⁵": "^5", "¹": "^1", "⁰": "^0" };
+function normMath(t){
+  let x = String(t);
+  // Si la IA mandó LaTeX por error, lo convertimos a nuestra notación.
+  for(let i = 0; i < 4; i++){
+    x = x.replace(/\\sqrt\s*\{([^{}]*)\}/g, "sqrt($1)")
+         .replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "($1)/($2)");
   }
+  x = x.replace(/\\(left|right|,|;|!)/g, "")
+       .replace(/\\cdot|\\times/g, "·").replace(/\\([A-Za-z]+)/g, "$1").replace(/\$/g, "")
+       .replace(/\{/g, "(").replace(/\}/g, ")");
+  return x
+    .replace(/[²³⁴⁵¹⁰]/g, c => SUP[c])
+    .replace(/\*\*/g, "^")
+    .replace(/(sqrt|raíz|raiz)\s*\(/gi, "√(")
+    .replace(/\*/g, "·").replace(/÷/g, "/")
+    .replace(/\bsin\b/g, "sen");
+}
+function fmt(t){
+  try{ return `<span class="math">${colorMath(normMath(t))}</span>`; }
   catch(e){ return esc(t); }
 }
 
@@ -270,6 +285,8 @@ function screenPreview(){
     <p class="mu" style="margin:0 0 8px">Corrígelo si la lectura de la foto no quedó exacta (p. ej. exponentes o signos).</p>
     <textarea id="texto" rows="3" maxlength="500" placeholder="Ej.: Deriva: f(x) = (3x^2 + 1)^4"
       style="width:100%;box-sizing:border-box;padding:12px;border-radius:var(--r-m);border:2px solid var(--line);background:var(--surface-2);color:var(--text);font:500 16px var(--font-ui);resize:vertical">${esc(State.texto)}</textarea>
+    <div id="texto-vista" class="texto-vista">${State.texto.trim() ? `<span class="mu" style="font-size:13px;display:block;margin-bottom:4px">Así se ve:</span>${fmt(State.texto)}` : ""}</div>
+    <p class="mu" style="margin:8px 0 0;font-size:13px">Tip: escribe las fracciones como <b>(arriba)/(abajo)</b> y las raíces como <b>sqrt(...)</b>. Ej.: <code>d/dy[(sqrt(6y-5))/(4-3y)]</code></p>
   </section>
   <section class="card">
     <h3>¿Cuántas variantes quieres?</h3>
@@ -320,7 +337,7 @@ function screenResult(){
   return `
   <div class="hero"><div class="eyebrow">${esc(d.tema || "Derivadas")} · Nivel ${esc(nivel)}</div>
     <h1>Variantes para practicar</h1>
-    <p class="mu">Problema original que leí en tu foto: <em>${fmt(d.transcripcion || "—")}</em></p>
+    <p class="mu">Problema original que leí en tu foto: <em>${fmt(d.transcripcion || State.texto || "—")}</em></p>
   </div>
   <div class="var-list">
     ${d.variantes.map((v, i) => `
@@ -371,7 +388,11 @@ function bind(){
   });
 
   const ta = document.getElementById("texto");
-  if(ta) ta.oninput = () => { State.texto = ta.value; };
+  if(ta) ta.oninput = () => {
+    State.texto = ta.value;
+    const v = document.getElementById("texto-vista");
+    if(v) v.innerHTML = ta.value.trim() ? `<span class="mu" style="font-size:13px;display:block;margin-bottom:4px">Así se ve:</span>${fmt(ta.value)}` : "";
+  };
   const typeBtn = document.getElementById("btn-type");
   if(typeBtn) typeBtn.onclick = () => { State.imageDataUrl = null; State.readWarn = ""; State.step = "preview"; render(); const t = document.getElementById("texto"); if(t) t.focus(); };
 

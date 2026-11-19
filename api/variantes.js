@@ -26,7 +26,16 @@ Recibes el texto de UN problema de derivadas. Haz esto:
    uno de una sola línea (máx. ~25 palabras), y el resultado final ya simplificado.
    REVISA que cada derivada esté correcta antes de responder.
 
-Escribe las fórmulas en texto plano (x^2, sqrt(x), sen(x), e^(2x), ln(x)).
+Si el problema original tiene fracciones o raíces, las variantes también deben tenerlas, y los
+pasos y el resultado deben mostrarlas igual (como fracciones, no divididas con una sola diagonal).
+
+NOTACIÓN OBLIGATORIA (la pantalla dibuja las fórmulas bonitas a partir de este texto):
+- Fracciones: SIEMPRE (numerador)/(denominador), con paréntesis en ambos lados aunque sean simples:
+  (2x)/(3), (x+1)/(x-1), (sqrt(6y-5))/(4-3y). Nunca escribas "a/b/c" ni "x+1/x-1".
+- Raíces: SIEMPRE sqrt(...) con paréntesis: sqrt(6y-5). Raíz cúbica: (...)^(1/3).
+- Exponentes con ^: x^2, (3x+1)^4, e^(2x). Multiplicación sin asterisco: 3x, 2(x+1).
+- Derivar respecto a una variable: d/dy[ expresión ] o d/dx[ expresión ]; Leibniz: dy/dx.
+- Funciones: sen(x), cos(x), tan(x), ln(x). Sin LaTeX, sin $, sin \\frac.
 Responde ÚNICAMENTE con JSON válido, con esta forma exacta:
 {
   "tema": "nombre corto",

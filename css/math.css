@@ -1,0 +1,32 @@
+/* Fórmulas del Escáner: fracciones apiladas, raíces con vínculo, exponentes y colores.
+   (Mismos estilos que styles.css; esta página solo carga arcade.css.) */
+:root{
+  --m-font: 'Literata', Georgia, serif;
+  --m-num: #F0B429; --m-var: #52B8E8; --m-exp: #ED7FAE; --m-func: #7FD88F; --m-line: #93A1BC;
+}
+:root[data-theme="light"]{
+  --m-num: #A25F08; --m-var: #1B6F9E; --m-exp: #B2386F; --m-func: #2A7F43; --m-line: #566073;
+}
+.math,.tok-num,.tok-var,.tok-func,.sqrt,.frac{ font-family:var(--m-font); }
+.math{ font-style:italic; letter-spacing:.01em; line-height:1.9; }
+.tok-num{ color:var(--m-num); font-weight:600; }
+.tok-var{ color:var(--m-var); font-weight:600; font-style:italic; }
+.tok-exp{ color:var(--m-exp); font-weight:700; font-size:.78em; }
+.tok-func{ color:var(--m-func); font-weight:600; font-style:normal; }
+.tok-op{ color:var(--m-line); }
+.tok-prime{ color:var(--m-var); }
+.tok-eq{ margin:0 .25em; }
+sup.tok-exp{ top:-.6em; }
+.tok-exp *{ color:inherit; font-size:1em; }
+.frac{
+  display:inline-flex; flex-direction:column; align-items:center;
+  vertical-align:middle; margin:0 .22em; line-height:1.3; font-style:normal;
+}
+.frac > .num{ padding:0 .3em .12em; border-bottom:.09em solid var(--m-line); }
+.frac > .den{ padding:.12em .3em 0; }
+.tok-exp .frac{ font-size:.8em; margin:0 .1em; }
+.sqrt{ display:inline-flex; align-items:stretch; }
+.sqrt-sign{ line-height:1; }
+.sqrt-body{ border-top:.09em solid var(--m-line); padding:0 .15em; margin-top:.15em; }
+.texto-vista{ margin-top:12px; font-size:22px; }
+.texto-vista:empty{ display:none; }

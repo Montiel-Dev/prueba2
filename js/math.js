@@ -68,7 +68,7 @@ function mathReadFactor(s, i){
     if(j > 0){
       const inner = mathResolve(mathParse(s.slice(i+1, j)));
       const real = inner.filter(x => x.t !== "ws");
-      const single = real.length === 1 && real[0].kind === "frac";
+      const single = c === "(" && real.length === 1 && real[0].kind === "frac";
       const innerHtml = mathHtml(inner);
       const o = c==="(" ? "(" : "[", cl = c==="(" ? ")" : "]";
       const paren = `<span class="tok-op">${o}</span>${innerHtml}<span class="tok-op">${cl}</span>`;

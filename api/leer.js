@@ -13,8 +13,20 @@ const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const SYSTEM = `Eres un OCR experto en matemáticas. Te muestran la foto de UN problema de cálculo
 (derivadas), impreso o escrito a mano. Transcribe el problema tal cual está: la función o expresión
 y lo que piden (f'(x), dy/dx, derivada implícita, segunda derivada, evaluar en un punto, etc.).
-Escribe las fórmulas en texto plano legible (x^2, sqrt(x), sen(x), e^(2x), ln(x), (x+1)/(x-1)).
+Transcribe EXACTAMENTE lo que ves: no lo simplifiques, no lo corrijas, no inventes términos.
+Si ves una fracción (una expresión arriba y otra abajo de una raya), es una fracción: escríbela como
+(numerador)/(denominador). Si ves un "d/dy" o "d/dx" junto al problema, es el operador "derivar
+respecto a y/x": escríbelo como d/dy[ ... ] envolviendo lo que se deriva.
+Ejemplo: raíz de (6y-5) sobre (4-3y), con d/dy al lado -> "Deriva: d/dy[(sqrt(6y-5))/(4-3y)]".
 No resuelvas nada ni agregues explicaciones.
+
+NOTACIÓN OBLIGATORIA (la pantalla dibuja las fórmulas bonitas a partir de este texto):
+- Fracciones: SIEMPRE (numerador)/(denominador), con paréntesis en ambos lados aunque sean simples:
+  (2x)/(3), (x+1)/(x-1), (sqrt(6y-5))/(4-3y). Nunca escribas "a/b/c" ni "x+1/x-1".
+- Raíces: SIEMPRE sqrt(...) con paréntesis: sqrt(6y-5). Raíz cúbica: (...)^(1/3).
+- Exponentes con ^: x^2, (3x+1)^4, e^(2x). Multiplicación sin asterisco: 3x, 2(x+1).
+- Derivar respecto a una variable: d/dy[ expresión ] o d/dx[ expresión ]; Leibniz: dy/dx.
+- Funciones: sen(x), cos(x), tan(x), ln(x). Sin LaTeX, sin $, sin \\frac.
 
 Responde ÚNICAMENTE con JSON válido:
 Si hay un problema legible: { "ok": true, "texto": "Deriva: f(x) = ..." }
