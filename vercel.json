@@ -18,6 +18,9 @@
   "functions": {
     "api/variantes.js": {
       "maxDuration": 60
+    },
+    "api/diagnostico-ia.js": {
+      "maxDuration": 60
     }
   }
 }
