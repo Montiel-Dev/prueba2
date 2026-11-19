@@ -181,20 +181,41 @@ Esta parte **sí necesita servidor**, así que funciona en Vercel o con `vercel 
   no una protección real contra alguien que edite su navegador.
 
 
-## Arcade (práctica infinita con vidas + examen cronometrado)
+## Arcade Pro (Modo Vidas + Mini-examen, desbloqueados con el pago simulado)
 
-`arcade.html` es una página aparte (en Vercel queda en `/arcade`) enlazada desde la pantalla principal.
-Comparte el mismo `localStorage` y el mismo Pro (`Pay.isPro()`) que el resto de la app.
+Funciona **sin servidor ni cuentas**: abre `index.html` (o usa Live Server) y listo.
 
-- **Práctica infinita:** ejercicios generados al azar (potencia, polinomio, cadena, trigonométricas,
-  exponencial, logaritmo y producto), 4 opciones con errores típicos como distractores y explicación.
-- **Vidas:** el plan gratis tiene 5; cada error quita una y se recupera 1 cada 5 minutos.
-- **Examen cronometrado:** 10 preguntas en 10 minutos, sin feedback hasta entregar; muestra nota,
-  estrellas y corrección. Guarda mejor nota e historial.
-- **Gratis vs Pro:** gratis = práctica con vidas limitadas y examen bloqueado (🔒); Pro = práctica sin vidas
-  y exámenes ilimitados. Al pagar desde el Arcade, se vuelve a él ya desbloqueado.
-- **Configuración:** constantes al inicio del `<script>` de `arcade.html` (`LIFE_MAX`, `REGEN_MS`,
-  `EXAM_Q`, `EXAM_SECS`, `FREE_EXAMS_PER_DAY`; con 0 el examen es solo para Pro). Para probar rápido: `REGEN_MS = 20000`.
-- **Agregar un tipo de ejercicio:** añade una función al arreglo `GENS` que devuelva
-  `{q, ok, bad:[3 errores], why}`.
-- El pago del botón "Obtener Pro" usa `Pay.start()` (necesita Vercel o `vercel dev`).
+| Archivo | Qué es |
+|---|---|
+| `arcade.html` | Hub. Sin pagar muestra los 2 módulos bloqueados 🔒 y el botón de pago. Pagado, los desbloquea. |
+| `vidas.html` | **Modo Vidas**: ejercicios ilimitados al azar (14 tipos, 3 niveles que suben con tu racha), 5 vidas estilo Duolingo, 1 se recupera cada 5 min o se compra con 40 ◆. |
+| `examen.html` | **Mini-examen** cronometrado: modos Rápido (5/5 min), Estándar (10/10), Largo (20/22). Sin feedback hasta entregar, marcar preguntas, confirmación al entregar, auto-entrega al acabar el tiempo, reanuda si recargas, nota + estrellas + corrección. |
+| `checkout.html` | **Checkout simulado**: tarjeta con vista previa en vivo, validación (Luhn, vencimiento, CVV, correo), pasos de procesamiento, comprobante y confeti. |
+| `js/arcade-core.js` | Estado, vidas, generador de ejercicios y candado Pro compartidos. |
+
+`vidas.html` y `examen.html` **redirigen al hub si no hay Pro**: solo existen para quien pagó.
+
+### Probar el pago
+
+El resultado depende del **titular**, igual que las tarjetas de prueba de Mercado Pago
+(también hay botones que rellenan todo solos):
+
+| Titular | Resultado |
+|---|---|
+| `APRO` (o cualquier otro nombre) | Aprobado → desbloquea Vidas y Examen |
+| `OTHE` | Rechazado |
+| `FUND` | Fondos insuficientes |
+| `SECU` / `EXPI` | CVV inválido / tarjeta vencida |
+| `CONT` | Pendiente → botón "Simular aprobación del banco" |
+
+Tarjeta de prueba: `5474 9254 3267 0366`, vence `11/30`, CVV `123`.
+Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos).
+
+### Configuración
+
+- `js/arcade-core.js` → `CFG`: `LIFE_MAX`, `REGEN_MS` (pon `20000` para probar rápido), `REFILL_COST`, `MODES`.
+- `js/pay.js` → `MODE: "local"` (checkout simulado propio, por defecto) o `"mercadopago"`
+  (Checkout Pro real en modo prueba; necesita Vercel + `MP_ACCESS_TOKEN`, ver sección de arriba).
+- Para reiniciar y volver a probar el pago: en la consola del navegador
+  `localStorage.removeItem("derivadas-dojo-pro-v1")`.
+- Agregar un tipo de ejercicio: añade `{level, name, fn(){ return {q, ok, bad:[3 errores], why} }}` a `GENS`.

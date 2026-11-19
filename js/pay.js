@@ -8,6 +8,9 @@
    ========================================================= */
 
 const Pay = {
+  // "local"       = checkout simulado propio (checkout.html). Funciona sin servidor ni cuentas.
+  // "mercadopago" = Checkout Pro real en modo prueba (necesita Vercel + MP_ACCESS_TOKEN).
+  MODE: "local",
   KEY: "derivadas-dojo-pro-v1",
   PENDING: "derivadas-dojo-pending-ref",
   PRICE_LABEL: "$49 MXN",
@@ -22,7 +25,14 @@ const Pay = {
     return !!(r && r.paymentId);
   },
 
-  async start(){
+  // next = página a la que volver tras pagar (por defecto el Arcade)
+  async start(next){
+    next = next || "arcade.html";
+    if(this.MODE === "local"){
+      location.href = "checkout.html?next=" + encodeURIComponent(next);
+      return;
+    }
+    try{ localStorage.setItem("dojo-after-pay", next); }catch(e){}
     if(location.protocol === "file:"){
       throw new Error("El pago necesita el sitio publicado en Vercel o `vercel dev` (no funciona abriendo index.html con doble clic).");
     }
@@ -31,6 +41,11 @@ const Pay = {
     if(!r.ok || !d.url) throw new Error(d.error || "No se pudo iniciar el pago.");
     localStorage.setItem(this.PENDING, d.ref);
     location.href = d.url;
+  },
+
+  // Guarda el comprobante (lo llama checkout.html al aprobarse el pago simulado)
+  grant(data){
+    localStorage.setItem(this.KEY, JSON.stringify(data));
   },
 
   // Se llama al cargar la app. Devuelve null si no venimos de un pago.
@@ -66,17 +81,21 @@ const Pay = {
       return `
       <div class="lesson-card pay-card pay-active">
         <div class="pay-head"><h2>✓ Dojo Pro activo</h2><span class="sim-tag">PAGO SIMULADO</span></div>
-        <p class="lead">Gracias por apoyar el Dojo. Comprobante de prueba #${r.paymentId}.</p>
+        <p class="lead">Gracias por apoyar el Dojo. Comprobante de prueba #${r.paymentId}.
+        Ya tienes desbloqueados el <strong>Modo Vidas</strong> y los <strong>Mini-exámenes</strong> del Arcade.</p>
+        <div class="action-row">
+          <a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Ir al Arcade</a>
+        </div>
       </div>`;
     }
     return `
       <div class="lesson-card pay-card">
         <div class="pay-head"><h2>Dojo Pro</h2><span class="sim-tag">PAGO SIMULADO</span></div>
-        <p class="lead">Apoya el proyecto y activa tu insignia Pro. Es una compra de demostración:
-        pasas por el checkout real de Mercado Pago, pero con cuentas y tarjetas de prueba.
-        <strong>No se cobra dinero real.</strong></p>
+        <p class="lead">Activa el <strong>Arcade Pro</strong>: Modo Vidas con ejercicios ilimitados al azar y
+        Mini-exámenes cronometrados. Es una compra de demostración: pasas por un checkout
+        completo, pero con tarjetas de prueba. <strong>No se cobra dinero real.</strong></p>
         <div class="action-row">
-          <button class="btn btn-primary" id="btn-pay">Pagar ${this.PRICE_LABEL} con Mercado Pago</button>
+          <button class="btn btn-primary" id="btn-pay">Desbloquear Arcade Pro · ${this.PRICE_LABEL}</button>
         </div>
         <p class="pay-fine" id="pay-msg"></p>
       </div>`;

@@ -71,11 +71,14 @@ const UI = {
         </div>
       </div>
       <div class="lesson-card">
-        <div class="pay-head"><h2>Arcade</h2></div>
-        <p class="lead">Práctica infinita con ejercicios nuevos al azar y vidas, y un examen
-        cronometrado de 10 preguntas. Con Pro: vidas ilimitadas y exámenes sin límite diario.</p>
+        <div class="pay-head"><h2>Arcade</h2>${Pay.isPro() ? '<span class="sim-tag" style="color:var(--success);border-color:var(--success)">DESBLOQUEADO</span>' : '<span class="sim-tag">PRO</span>'}</div>
+        <p class="lead">Dos módulos para entrenar al máximo: <strong>Modo Vidas</strong> (ejercicios ilimitados al azar,
+        con vidas estilo Duolingo) y <strong>Mini-exámenes</strong> cronometrados tipo examen real.
+        ${Pay.isPro() ? "" : "Se desbloquean con el pago simulado de Arcade Pro."}</p>
         <div class="action-row">
-          <a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Entrar al Arcade</a>
+          ${Pay.isPro()
+            ? '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Modo Vidas</a> <a class="btn btn-primary" href="examen.html" style="text-decoration:none;display:inline-block">Mini-examen</a>'
+            : '<a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Ver el Arcade</a>'}
         </div>
       </div>
       ${Pay.cardHTML()}

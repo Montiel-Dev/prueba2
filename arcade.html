@@ -1,276 +1,104 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Derivadas Dojo — Arcade</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#0E1420;--card:#161E2E;--line:#26324A;--tx:#E8EEF8;--mu:#8D9BB5;--ac:#4DB6E8;--acx:#0E1420;--ok:#43C985;--bad:#F0646A;--gold:#F2B33D;color-scheme:dark}
-:root[data-theme="light"]{--bg:#F4F6FA;--card:#FFFFFF;--line:#D9E0EC;--tx:#16202F;--mu:#5B6B85;--ac:#1B8FC9;--acx:#FFFFFF;--ok:#1E9E62;--bad:#D7414A;--gold:#B87A00;color-scheme:light}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 Inter,system-ui,sans-serif}
-body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
-.wrap{max-width:680px;margin:0 auto;padding:16px}
-.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 0 18px}
-.brand{font:700 20px Fraunces,Georgia,serif;margin-right:auto}
-.pill{border:1px solid var(--gold);color:var(--gold);border-radius:99px;padding:1px 10px;font-weight:700;font-size:13px}
-.pill.pro{background:var(--gold);color:var(--acx)}
-.heart{color:var(--bad);font-weight:600}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px}
-h2{font:700 24px Fraunces,Georgia,serif;margin:0 0 6px}
-.mu{color:var(--mu)}
-.fx{font:600 28px Fraunces,Georgia,serif;margin:14px 0 18px;overflow-wrap:anywhere}
-.opts{display:grid;gap:10px;margin-bottom:14px}
-.opt{font:600 18px Inter,sans-serif;text-align:left;padding:14px 16px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--tx);cursor:pointer}
-.opt:hover{border-color:var(--ac)}
-.opt.sel{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,transparent)}
-.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
-.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
-.btn{font:700 16px Inter,sans-serif;background:var(--ac);color:var(--acx);border:0;border-radius:10px;padding:12px 20px;cursor:pointer}
-.btn.alt{background:transparent;color:var(--ac);border:2px solid var(--ac)}
-.lnk{background:none;border:0;color:var(--mu);font:500 15px Inter,sans-serif;cursor:pointer;padding:8px 0;text-decoration:underline}
-.lnk:disabled{opacity:.3;cursor:default}
-.back{color:var(--mu);font-size:15px;text-decoration:none}
-#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:90%;background:var(--card);border:1px solid var(--bad);color:var(--tx);border-radius:10px;padding:10px 16px;font-size:14px;display:none;z-index:9}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.prog{height:6px;border-radius:9px;background:var(--line);margin:10px 0}
-.prog i{display:block;height:100%;border-radius:9px;background:var(--ac)}
-.fb{border-left:4px solid var(--ok);padding:4px 14px;margin:0 0 14px}
-.fb.badt{border-color:var(--bad)}
-.fb p{margin:4px 0}
-.big{font:700 56px Fraunces,Georgia,serif;line-height:1.1}
-.stars{color:var(--gold);font-size:28px}
-.it{border-top:1px solid var(--line);padding:10px 0;font-size:15px}
-.it.x b{color:var(--bad)}.it.v b{color:var(--ok)}
-button:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
-</style>
+<link rel="stylesheet" href="css/arcade.css">
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <div id="toast" role="alert"></div>
 <script src="js/pay.js"></script>
+<script src="js/arcade-core.js"></script>
 <script>
-/* ============ CONFIGURACIÓN (cámbiala para tus pruebas) ============ */
-const LIFE_MAX = 5;               // vidas máximas del plan gratis
-const REGEN_MS = 5 * 60 * 1000;   // 1 vida se recupera cada 5 min (pon 20000 para probar rápido)
-const EXAM_Q = 10;                // preguntas por examen
-const EXAM_SECS = 600;            // duración del examen (10 min)
-const FREE_EXAMS_PER_DAY = 0;     // exámenes gratis al día (0 = el examen se desbloquea solo con Pro)
-const KEY = 'dojo-arcade-v1';
+/* Hub del Arcade. Los módulos (Vidas y Examen) son páginas separadas
+   que solo se desbloquean cuando el pago simulado queda aprobado. */
+const S = Arcade.S();
+const pro = Arcade.isPro();
+const forced = new URLSearchParams(location.search).has('bloqueado');
 
-/* ============ ESTADO Y PERSISTENCIA ============ */
-const DEF = {pts:0, lives:LIFE_MAX, t:Date.now(), exDay:'', exCount:0, best:0, hist:[]};
-let S = (()=>{try{return {...DEF, ...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){return {...DEF}}})();
-const save = ()=>{try{localStorage.setItem(KEY, JSON.stringify(S))}catch(e){}};
-
-/* Pro real: lee el comprobante que guarda js/pay.js (Mercado Pago, pago simulado) */
-const isPro = ()=> typeof Pay!=='undefined' && Pay.isPro();
-function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',6000)}
-async function goPro(){ try{ localStorage.setItem('dojo-after-pay','arcade.html'); await Pay.start(); }catch(e){ localStorage.removeItem('dojo-after-pay'); toast(e.message); } }
-
-/* ============ VIDAS ============ */
-function tick(){
-  if(isPro()){ S.lives = LIFE_MAX; S.t = Date.now(); return; }
-  if(S.lives >= LIFE_MAX){ S.t = Date.now(); return; }
-  const n = Math.floor((Date.now() - S.t) / REGEN_MS);
-  if(n > 0){ S.lives = Math.min(LIFE_MAX, S.lives + n); S.t += n * REGEN_MS; save(); }
-}
-function loseLife(){
-  if(isPro()) return;
-  if(S.lives === LIFE_MAX) S.t = Date.now();
-  S.lives = Math.max(0, S.lives - 1);
-}
-const nextIn = ()=> Math.max(0, REGEN_MS - (Date.now() - S.t));
-const mmss = ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
-
-/* ============ GENERADOR DE EJERCICIOS ============ */
-const R = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
-const pick = a=> a[R(0,a.length-1)];
-const shuffle = a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=R(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
-const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-const sup = n=> String(n).split('').map(d=>SUP[d]).join('');
-const neg = s=> String(s).replace('-','−');
-const cf = c=> c===1 ? '' : c===-1 ? '−' : neg(c);           // coeficiente delante de la x
-const xp = n=> n===0 ? '' : n===1 ? 'x' : 'x'+sup(n);
-const mono = (c,n)=> n===0 ? neg(c) : cf(c)+xp(n);
-const poly = ts=> ts.filter(t=>t[0]!==0).map((t,i)=>{
-  const s = mono(Math.abs(t[0]), t[1]);
-  return i ? (t[0]<0 ? ' − ' : ' + ') + s : (t[0]<0 ? '−' : '') + s;
-}).join('') || '0';
-
-/* Cada generador devuelve: q (función), ok (derivada correcta), bad (3 errores típicos), why (explicación) */
-const GENS = [
-  function potencia(){
-    const a=R(2,9), n=R(2,6);
-    return {q:poly([[a,n]]), ok:poly([[a*n,n-1]]),
-      bad:[poly([[a,n-1]]), poly([[a*n,n]]), poly([[n,n-1]])],
-      why:`Regla de la potencia: el exponente baja multiplicando (${a}·${n} = ${a*n}) y al exponente se le resta 1.`};
-  },
-  function polinomio(){
-    const a=R(2,5), n=R(2,4), b=R(-9,9)||3, c=R(-9,9)||2;
-    return {q:poly([[a,n],[b,1],[c,0]]), ok:poly([[a*n,n-1],[b,0]]),
-      bad:[poly([[a*n,n-1],[b,0],[c,0]]), poly([[a*n,n-1],[b,1]]), poly([[a,n-1],[b,0]])],
-      why:`Se deriva término por término: la derivada de bx es b y la de una constante es 0.`};
-  },
-  function cadena(){
-    const a=R(2,4), b=R(1,6), n=R(2,5), inner=poly([[a,1],[b,0]]);
-    const pw = m=> m===1 ? `(${inner})` : `(${inner})${sup(m)}`;
-    return {q:pw(n), ok:`${a*n}${pw(n-1)}`,
-      bad:[`${n}${pw(n-1)}`, `${a*n}${pw(n)}`, `${a}${pw(n-1)}`],
-      why:`Regla de la cadena: derivas la potencia (${n}·(…)^${n-1}) y multiplicas por la derivada de lo de adentro (${a}). ${n}·${a} = ${a*n}.`};
-  },
-  function trig(){
-    const a=R(1,5), b=R(2,5), s=pick(['sen','cos']), arg=`${b}x`;
-    if(s==='sen') return {q:`${cf(a)}sen(${arg})`, ok:`${cf(a*b)}cos(${arg})`,
-      bad:[`${cf(a)}cos(${arg})`, `${cf(-a*b)}cos(${arg})`, `${cf(a*b)}sen(${arg})`],
-      why:`La derivada de sen(u) es cos(u)·u′. Aquí u′ = ${b}, y ${a}·${b} = ${a*b}.`};
-    return {q:`${cf(a)}cos(${arg})`, ok:`${cf(-a*b)}sen(${arg})`,
-      bad:[`${cf(a*b)}sen(${arg})`, `${cf(-a)}sen(${arg})`, `${cf(-a*b)}cos(${arg})`],
-      why:`La derivada de cos(u) es −sen(u)·u′. Aquí u′ = ${b}, y el signo negativo se conserva.`};
-  },
-  function exponencial(){
-    const a=R(1,5), b=R(2,5);
-    return {q:`${cf(a)}e^(${b}x)`, ok:`${cf(a*b)}e^(${b}x)`,
-      bad:[`${cf(a)}e^(${b}x)`, `${cf(a*b)}x·e^(${b}x−1)`, `(${a}/${b})e^(${b}x)`],
-      why:`La derivada de e^u es e^u·u′. El exponente no cambia y se multiplica por u′ = ${b}.`};
-  },
-  function logaritmo(){
-    const a=R(2,9);
-    return {q:`${a}·ln(x)`, ok:`${a}/x`, bad:['1/x', `${a}/x²`, `${a}·x`],
-      why:`La derivada de ln(x) es 1/x, y la constante ${a} sale multiplicando.`};
-  },
-  function producto(){
-    const n=R(2,4), u=`x${sup(n)}`, du=`${n}${xp(n-1)}`;
-    return {q:`${u}·sen(x)`, ok:`${du}·sen(x) + ${u}·cos(x)`,
-      bad:[`${du}·cos(x)`, `${u}·cos(x)`, `${du}·sen(x) − ${u}·cos(x)`],
-      why:`Regla del producto: (u·v)′ = u′·v + u·v′. No se deriva cada factor por separado.`};
-  }
-];
-function mk(g){
-  for(let i=0;i<20;i++){
-    const d=g();
-    if(new Set([d.ok,...d.bad]).size===4) return {q:d.q, ok:d.ok, why:d.why, opts:shuffle([d.ok,...d.bad])};
-  }
+function modules(){
+  const vidas = pro
+    ? `<a class="btn" href="vidas.html">Jugar ahora</a>`
+    : `<button class="btn alt" onclick="Arcade.goPay()">🔒 Desbloquear con Pro</button>`;
+  const examen = pro
+    ? `<a class="btn" href="examen.html">Hacer un examen</a>`
+    : `<button class="btn alt" onclick="Arcade.goPay()">🔒 Desbloquear con Pro</button>`;
+  return `
+  <div class="mods">
+    <section class="card mod ${pro?'open':'locked'}">
+      <span class="lock ${pro?'ok':''}">${pro?'DESBLOQUEADO':'PRO'}</span>
+      <div class="ico">♥</div>
+      <h2>Modo Vidas</h2>
+      <p class="mu" style="margin:0">Ejercicios ilimitados generados al azar. Como en Duolingo: ${Arcade.CFG.LIFE_MAX} vidas, cada error cuesta una.</p>
+      <ul>
+        <li>Nunca se repiten: se generan al momento</li>
+        <li>La dificultad sube con tu racha</li>
+        <li>1 vida se recupera cada ${Arcade.CFG.REGEN_MS/60000} min</li>
+      </ul>
+      <div class="foot">${vidas}</div>
+    </section>
+    <section class="card mod ${pro?'open':'locked'}">
+      <span class="lock ${pro?'ok':''}">${pro?'DESBLOQUEADO':'PRO'}</span>
+      <div class="ico">⏱</div>
+      <h2>Mini-examen</h2>
+      <p class="mu" style="margin:0">Cronometrado y sin pistas, como un examen real. Ves tu nota y la corrección al entregar.</p>
+      <ul>
+        <li>3 modos: 5, 10 o 20 preguntas</li>
+        <li>Marca preguntas para revisarlas después</li>
+        <li>Nota, estrellas e historial</li>
+      </ul>
+      <div class="foot">${examen}</div>
+    </section>
+  </div>`;
 }
 
-/* ============ VISTAS ============ */
-let V = {view:'home'};
-const top = ()=>`<div class="bar"><a class="back" href="index.html">← Dojo</a><span class="brand">d/dx Arcade</span><span>◆ ${S.pts}</span><span id="hearts">${hearts()}</span><span class="pill ${isPro()?'pro':''}">${isPro()?'PRO':'GRATIS'}</span></div>`;
-const hearts = ()=> isPro() ? '<span class="heart">♥ ∞</span>'
-  : `<span class="heart">${'♥'.repeat(S.lives)}${'♡'.repeat(LIFE_MAX-S.lives)}</span>${S.lives<LIFE_MAX?` <small class="mu">+1 en ${mmss(nextIn())}</small>`:''}`;
-const today = ()=> new Date().toDateString();
-const examsLeft = ()=> isPro() ? Infinity : Math.max(0, FREE_EXAMS_PER_DAY - (S.exDay===today() ? S.exCount : 0));
-
-const VIEWS = {
-  home: ()=>`
-    <div class="card"><h2>Práctica infinita</h2>
-      <p class="mu">Ejercicios nuevos cada vez. Cada error te cuesta una vida${isPro()?'… pero con Pro no se acaban.':'. Sin vidas, espera o pásate a Pro.'}</p>
-      <button class="btn" onclick="startPractice()">Practicar</button></div>
-    <div class="card"><h2>Examen cronometrado</h2>
-      <p class="mu">${EXAM_Q} preguntas, ${EXAM_SECS/60} minutos, sin pistas. Ves tu calificación y las correcciones al final.</p>
-      <p class="mu">${isPro()?'Intentos ilimitados.':examsLeft()>0?`Exámenes gratis hoy: ${examsLeft()} de ${FREE_EXAMS_PER_DAY}.`:'🔒 Se desbloquea con Pro.'}  Mejor nota: ${S.best}/${EXAM_Q}</p>
-      ${examsLeft()>0?'<button class="btn" onclick="startExam()">Empezar examen</button>':'<button class="btn" onclick="goPro()">Desbloquear con Pro</button>'}
-      ${S.hist.length?`<p class="mu">Últimos: ${S.hist.map(h=>h.s+'/'+EXAM_Q).join(' · ')}</p>`:''}</div>
-    <div class="card"><h2>${isPro()?'✓ Dojo Pro activo':'Dojo Pro'}</h2>
-      <p class="mu">Vidas ilimitadas y exámenes sin límite diario.</p>
-      ${isPro()?'':`<button class="btn" onclick="goPro()">Obtener Pro con Mercado Pago</button>
-      <p class="mu"><small>Pago simulado: se usan cuentas y tarjetas de prueba, no se cobra dinero real.</small></p>`}</div>`,
-
-  prac: ()=>{const e=V.ex; return `
-    <div class="card"><div class="mu">Racha de aciertos: ${V.streak}</div>
-      <div class="mu">Calcula f′(x) para</div><div class="fx">f(x) = ${e.q}</div>
-      <div class="opts">${e.opts.map((o,i)=>`<button class="opt ${V.done?(o===e.ok?'ok':i===V.sel?'bad':''):''}" onclick="pickOpt(${i})">${o}</button>`).join('')}</div>
-      ${V.done?`<div class="fb ${V.right?'':'badt'}"><b>${V.right?'¡Correcto! +10 puntos':'Incorrecto. Pierdes una vida.'}</b><p>${e.why}</p>${V.right?'':`<p>Respuesta: <b>${e.ok}</b></p>`}</div>
-        <button class="btn" onclick="nextQ()">Continuar</button>`:''}</div>
-    <button class="lnk" onclick="home()">Salir</button>`},
-
-  nolives: ()=>`
-    <div class="card"><h2>Te quedaste sin vidas</h2>
-      <p class="mu">Tu próxima vida llega en <b id="cd">${mmss(nextIn())}</b>.</p>
-      <p>Con Pro tienes vidas ilimitadas y sigues practicando ahora mismo.</p>
-      <button class="btn" onclick="goPro()">Obtener Pro con Mercado Pago</button>
-      <button class="lnk" onclick="home()">Volver al inicio</button></div>`,
-
-  exlimit: ()=>`
-    <div class="card"><h2>${FREE_EXAMS_PER_DAY?'Ya hiciste tu examen gratis de hoy':'El examen es exclusivo de Pro'}</h2>
-      <p class="mu">Con Pro haces exámenes cronometrados sin límite.</p>
-      <button class="btn" onclick="goPro()">Obtener Pro con Mercado Pago</button>
-      <button class="lnk" onclick="home()">Volver al inicio</button></div>`,
-
-  exam: ()=>{const q=V.qs[V.i], last=V.i===EXAM_Q-1; return `
-    <div class="card"><div class="row"><span class="mu">Pregunta ${V.i+1} de ${EXAM_Q}</span><b id="tm">${mmss(V.end-Date.now())}</b></div>
-      <div class="prog"><i style="width:${(V.i+1)/EXAM_Q*100}%"></i></div>
-      <div class="mu">Calcula f′(x) para</div><div class="fx">f(x) = ${q.q}</div>
-      <div class="opts">${q.opts.map((o,j)=>`<button class="opt ${V.ans[V.i]===j?'sel':''}" onclick="ans(${j})">${o}</button>`).join('')}</div>
-      <div class="row"><button class="lnk" ${V.i?'':'disabled'} onclick="go(-1)">← Anterior</button>
-        ${last?'<button class="btn" onclick="finish()">Entregar examen</button>':'<button class="btn" onclick="go(1)">Siguiente →</button>'}</div></div>`},
-
-  result: ()=>{const r=V.r; return `
-    <div class="card"><div class="mu">${r.auto?'Se acabó el tiempo.':'Examen entregado.'}</div>
-      <div class="big">${r.s}/${EXAM_Q}</div><div class="stars">${'★'.repeat(r.st)}${'☆'.repeat(3-r.st)}</div>
-      <p>+${r.s*5} puntos${r.s>=S.best&&r.s>0?' · ¡Nueva mejor nota!':''}</p>${r.items}
-      <button class="btn" onclick="home()">Volver al inicio</button></div>`}
-};
-function render(){ document.getElementById('app').innerHTML = top() + VIEWS[V.view](); }
-function home(){ V={view:'home'}; render(); }
-
-/* ============ PRÁCTICA ============ */
-function startPractice(){
-  tick();
-  if(!isPro() && S.lives<=0){ V={view:'nolives'}; return render(); }
-  V={view:'prac', ex:mk(pick(GENS)), sel:null, done:false, right:false, streak:0}; render();
-}
-function pickOpt(i){
-  if(V.done) return;
-  const e=V.ex; V.sel=i; V.done=true; V.right = e.opts[i]===e.ok;
-  if(V.right){ S.pts+=10; V.streak++; } else { loseLife(); V.streak=0; }
-  save(); render();
-}
-function nextQ(){
-  if(!isPro() && S.lives<=0){ V={view:'nolives'}; return render(); }
-  V.ex=mk(pick(GENS)); V.sel=null; V.done=false; render();
+function promo(){
+  return `
+  <section class="card promo">
+    <div>
+      <div class="eyebrow">Arcade Pro</div>
+      <h2>Desbloquea los dos módulos</h2>
+      <p class="mu" style="margin:6px 0 0">Pago único, simulado: pasas por un checkout completo pero con tarjetas de prueba. No se cobra dinero real.</p>
+    </div>
+    <div>
+      <div class="price">$49 <small>MXN · pago único</small></div>
+      <button class="btn gold block lg" style="margin-top:12px" onclick="Arcade.goPay()">Desbloquear Arcade Pro</button>
+    </div>
+  </section>`;
 }
 
-/* ============ EXAMEN ============ */
-function startExam(){
-  if(examsLeft()<=0){ V={view:'exlimit'}; return render(); }
-  if(!isPro()){ if(S.exDay!==today()){ S.exDay=today(); S.exCount=0; } S.exCount++; save(); }
-  const gs = shuffle(GENS);
-  V={view:'exam', qs:Array.from({length:EXAM_Q},(_,i)=>mk(gs[i%gs.length])), ans:Array(EXAM_Q).fill(null), i:0, end:Date.now()+EXAM_SECS*1000};
-  render();
-}
-function ans(j){ V.ans[V.i]=j; render(); }
-function go(d){ V.i=Math.min(EXAM_Q-1,Math.max(0,V.i+d)); render(); }
-function finish(auto){
-  if(V.view!=='exam') return;
-  let s=0;
-  const items = V.qs.map((q,i)=>{
-    const a=V.ans[i], ok = a!==null && q.opts[a]===q.ok; if(ok) s++;
-    return `<div class="it ${ok?'v':'x'}"><b>${ok?'✓':'✗'}</b> f(x) = ${q.q}` +
-      (ok?'':`<br>Tu respuesta: ${a===null?'sin responder':q.opts[a]}<br>Correcta: <b>${q.ok}</b><br><span class="mu">${q.why}</span>`) + `</div>`;
-  }).join('');
-  const st = s>=9?3 : s>=7?2 : s>=6?1 : 0;
-  S.pts += s*5; S.best = Math.max(S.best,s);
-  S.hist.unshift({s}); S.hist = S.hist.slice(0,6); save();
-  V={view:'result', r:{s, st, items, auto:!!auto}, qs:V.qs}; render();
+function stats(){
+  const hist = S.hist.length ? S.hist.map(h=> h.n ? Math.round(h.s/h.n*100)+'%' : h.s+'/10').join(' · ') : '—';
+  return `
+  <section class="card">
+    <h3>Tu progreso en el Arcade</h3>
+    <div class="stat-grid" style="margin-top:12px">
+      <div class="stat"><b>${S.pts}</b><span>Puntos</span></div>
+      <div class="stat"><b>${S.solved}</b><span>Ejercicios resueltos</span></div>
+      <div class="stat"><b>${S.bestStreak}</b><span>Mejor racha</span></div>
+      <div class="stat"><b>${S.bestPct}%</b><span>Mejor examen</span></div>
+    </div>
+    <p class="mu" style="margin:12px 0 0;font-size:14px">Últimos exámenes: ${hist}</p>
+  </section>`;
 }
 
-/* ============ RELOJ (cada segundo) ============ */
-tick();
-setInterval(()=>{
-  tick();
-  const h=document.getElementById('hearts'); if(h) h.innerHTML=hearts();
-  const c=document.getElementById('cd'); if(c) c.textContent=mmss(nextIn());
-  if(V.view==='exam'){
-    const ms=V.end-Date.now();
-    if(ms<=0) finish(true); else { const t=document.getElementById('tm'); if(t) t.textContent=mmss(ms); }
-  }
-  if(V.view==='nolives' && (isPro()||S.lives>0)) home();
-},1000);
+function render(){
+  document.getElementById('app').innerHTML =
+    Arcade.topbar({title:'Arcade'}) +
+    `<div class="hero"><div class="eyebrow">Práctica + examen</div>
+      <h1>Arcade de derivadas</h1>
+      <p class="mu">${pro ? 'Tu Arcade Pro está activo. Elige un módulo.' : 'Dos módulos para entrenar al máximo: ejercicios ilimitados con vidas y mini-exámenes cronometrados.'}</p></div>` +
+    (forced && !pro ? `<div class="alert warn">Ese módulo es parte del Arcade Pro. Desbloquéalo para entrar.</div>` : '') +
+    modules() + (pro ? stats() : promo());
+  Arcade.themeBtn();
+}
 render();
 </script>
 </body>
