@@ -277,11 +277,16 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
 El alumno toma una foto a un problema de derivadas (o sube una que ya tenga), y la app:
 
 1. Comprime la foto en el propio navegador (`js/camara.js`, canvas a ≤1400px, JPEG) antes de enviarla.
-2. La manda a `api/variantes.js`, que llama a la API de Anthropic (Claude) con la imagen.
+2. La manda a `api/variantes.js`, que llama a la API de **Google Gemini** con la imagen.
 3. La IA transcribe el problema, identifica tema y dificultad, y genera 3/4/6 **variantes**: mismo
    tema y técnica, misma dificultad aproximada, pero con números/funciones distintos — cada una con
    su **solución paso a paso** y resultado final.
 4. Si la foto no trae un problema de derivadas legible, se avisa y se puede intentar con otra.
+
+¿Por qué Gemini y no otra IA? Tiene un **nivel gratis real, sin pedir tarjeta**. Tiene límites de
+cuántas fotos por minuto/día se pueden analizar gratis; si se llegan a pasar, la API simplemente
+contesta "espera un poco" (error 429) y vuelve a funcionar sola, gratis, en la siguiente ventana —
+no hay que pagar nada ni configurar nada para que se recupere.
 
 **Esta función es gratis por ahora, a propósito** (no está detrás de Dojo Pro). El código deja listo
 dónde activarlo como Pro más adelante:
@@ -295,15 +300,20 @@ dónde activarlo como Pro más adelante:
 
 ### Configuración (una sola vez)
 
-1. Crea una API key en [console.anthropic.com](https://console.anthropic.com/) (requiere una cuenta
-   con crédito/facturación — cada foto analizada consume unos cuantos centavos de uso de la API).
-2. Pégala como variable de entorno `ANTHROPIC_API_KEY`:
+1. Crea una API key **gratis** en [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+   (inicia sesión con una cuenta de Google; no pide tarjeta).
+2. Pégala como variable de entorno `GEMINI_API_KEY`:
    - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
-   - Vercel: Settings → Environment Variables → `ANTHROPIC_API_KEY`.
-3. (Opcional) `ANTHROPIC_MODEL` si quieres fijar otro modelo (por defecto `claude-sonnet-5-5`).
+   - Vercel: Settings → Environment Variables → `GEMINI_API_KEY` → después hay que hacer
+     **Redeploy** (las variables nuevas no aplican al deploy que ya estaba publicado).
+3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-2.5-flash`).
 
 Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
 abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
+
+Si en algún momento quieres volver a usar Claude (Anthropic) en vez de Gemini —por ejemplo porque
+ya tienes cuenta ahí, o porque quieres mejor calidad en el reconocimiento de letra manuscrita— el
+único archivo que hay que tocar es `lib/ai.js`: ahí vive toda la llamada a la IA.
 
 ### Archivos
 
@@ -312,7 +322,7 @@ abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`)
 | `camara.html` | Página del Escáner (captura/sube foto, elige cuántas variantes, muestra resultados). |
 | `js/camara.js` | Captura/compresión de la foto, llamada a `/api/variantes` y render de las pantallas. |
 | `api/variantes.js` | Endpoint serverless: recibe la foto, llama a la IA y valida/formatea su respuesta. |
-| `lib/ai.js` | Helper compartido para hablar con la API de Anthropic (igual rol que `lib/mp.js` para pagos). |
+| `lib/ai.js` | Helper compartido para hablar con la API de Gemini (igual rol que `lib/mp.js` para pagos). |
 
 ## Planes de estudio por institución
 

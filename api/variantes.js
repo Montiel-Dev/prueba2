@@ -2,8 +2,8 @@
    Recibe la foto de un problema de derivadas y devuelve N "variantes":
    el mismo tipo de problema (misma técnica, dificultad parecida) pero
    con números/funciones distintos, cada una con solución paso a paso.
-   Usa la API de Anthropic (Claude) — necesita la variable de entorno
-   ANTHROPIC_API_KEY (ver README y .env.example).
+   Usa la API de Google Gemini (tiene nivel gratis, sin tarjeta) —
+   necesita la variable de entorno GEMINI_API_KEY (ver README y .env.example).
 
    NOTA: esta ruta todavía es de acceso LIBRE a propósito (no se pidió
    hacerla Pro todavía). Para volverla parte de Dojo Pro más adelante,
