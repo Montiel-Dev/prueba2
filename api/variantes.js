@@ -29,6 +29,15 @@ Recibes el texto de UN problema de derivadas. Haz esto:
 Si el problema original tiene fracciones o raíces, las variantes también deben tenerlas, y los
 pasos y el resultado deben mostrarlas igual (como fracciones, no divididas con una sola diagonal).
 
+VARIANTES LIMPIAS Y LEGIBLES EN CELULAR (reglas duras):
+- Mismo tema y técnica, pero NUNCA más enredadas que el original: nada de fracciones dentro de fracciones
+  ni de fracciones dentro de raíces (ej. NO sqrt(12x−(3x−1)/x) como denominador). Máximo UNA fracción por nivel
+  y la raíz solo sobre expresiones polinomiales (sqrt(3x^2−5), sqrt(5x−1)).
+- Cada paso cabe en una línea corta y lleva UNA sola idea; usa nombres u, v, u', v' en vez de volver a escribir todo
+  (ej. "u = sqrt(3x^2−5) ; u' = (3x)/(sqrt(3x^2−5))"). No pegues expresiones de más de ~90 caracteres en un paso.
+- El resultado final va simplificado y SIN fracciones complejas: UNA sola fracción (numerador)/(denominador),
+  con la raíz o el exponente fraccionario en el denominador, ej. (15x^2−6x+25)/(2(5x−1)^(3/2)sqrt(3x^2−5)).
+
 NOTACIÓN OBLIGATORIA (la pantalla dibuja las fórmulas bonitas a partir de este texto):
 - Fracciones: SIEMPRE (numerador)/(denominador), con paréntesis en ambos lados aunque sean simples:
   (2x)/(3), (x+1)/(x-1), (sqrt(6y-5))/(4-3y). Nunca escribas "a/b/c" ni "x+1/x-1".

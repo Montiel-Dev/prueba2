@@ -129,3 +129,44 @@ img, svg, canvas, video{ max-width:100%; }
 @media (max-height:560px) and (orientation:landscape){
   .m-streak{ --ns:150px; right:6px; bottom:6px; }
 }
+
+/* =========================================================
+   FÓRMULAS Y ANIMACIÓN PASO A PASO EN CELULAR
+   Problema: cada pieza de la expresión se encogía y la fórmula
+   se partía por dentro ("((4x)(" en una línea, la raíz en otra...).
+   Ahora: una pieza NUNCA se parte; si no cabe, se achica la letra,
+   luego se baja a la siguiente línea y, como último recurso, se desliza.
+   ========================================================= */
+.a-tok, .a-ghost, .a-tok .math, .a-ghost .math{ white-space:nowrap; }
+.a-tok{ flex:0 0 auto; }
+.a-stage{ overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.a-row{ justify-content:flex-start; }
+.a-row > .a-tok:first-child{ margin-left:auto; }   /* centrado "seguro": si desborda, se puede deslizar */
+.a-row > .a-tok:last-child{ margin-right:auto; }
+.a-hint{ margin:6px 2px 0; font-size:12.5px; color:var(--text-dim); text-align:center; }
+
+/* datos (u, v, u', v'): uno por renglón, como en el cuaderno */
+.anim-data{ display:grid; gap:6px; }
+.anim-data b{ display:block; margin:0 0 2px; }
+.anim-data .d-item{ font-size:18px; white-space:nowrap; overflow-x:auto; padding:2px 0; }
+
+/* resultado y enunciado de cada variante: una sola línea que se puede deslizar, nunca revuelta */
+.var-result{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.var-result .math{ white-space:nowrap; }
+.var-enun .math{ display:block; white-space:nowrap; overflow-x:auto; padding:4px 0; }
+
+@media (max-width:640px){
+  .a-stage{ padding:16px 10px; min-height:96px; }
+  .a-row{ gap:8px 10px; }
+  .anim-cap{ font-size:16.5px; line-height:1.6; }
+  /* botones grandes y ordenados: Regresar / Siguiente arriba, Reproducir abajo */
+  .anim-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .anim-ctl [data-a="prev"]{ order:1; } .anim-ctl [data-a="next"]{ order:2; }
+  .anim-ctl [data-a="play"]{ order:3; grid-column:1 / -1; }
+  .anim-ctl [data-a="first"]{ order:4; } .anim-ctl .anim-speed{ order:5; }
+  .anim-ctl .anim-count{ order:6; grid-column:1 / -1; text-align:center; }
+  .anim-ctl .btn{ width:100%; justify-content:center; }
+  .var-steps{ padding-left:0; list-style:none; counter-reset:paso; gap:10px; }
+  .var-steps li{ counter-increment:paso; position:relative; padding:10px 12px 10px 40px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; font-size:15.5px; line-height:1.7; overflow-x:auto; }
+  .var-steps li::before{ content:counter(paso); position:absolute; left:10px; top:10px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font:700 13px var(--font-ui,Inter,sans-serif); display:grid; place-items:center; }
+}

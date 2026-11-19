@@ -174,6 +174,7 @@ const Anim = {
       <div class="anim-orig"></div>
       <div class="a-t"></div>
       <div class="a-stage" aria-live="polite"><div class="a-row"></div></div>
+      <div class="a-hint" hidden>↔ Desliza para ver la expresión completa</div>
       <div class="anim-data"></div>
       <div class="anim-cap"></div>
       <div class="anim-bar"><div></div></div>
@@ -226,7 +227,7 @@ const Anim = {
       }
       q(".anim-orig").innerHTML = k > 0 ? `<span>Partimos de</span> ${m(Anim.plain(frames[0].e))}` : "";
       q(".a-t").innerHTML = rich(f.t);
-      q(".anim-data").innerHTML = f.d ? `<b>Datos:</b> <span class="math">${colorMath(f.d)}</span>` : "";
+      q(".anim-data").innerHTML = f.d ? `<b>Datos</b>` + String(f.d).split(/\s*;\s*/).filter(Boolean).map(x => `<div class="d-item"><span class="math">${colorMath(x)}</span></div>`).join("") : "";
       q(".anim-cap").innerHTML = rich(f.n || "");
       q(".anim-bar div").style.width = ((k+1)/n*100) + "%";
       q(".anim-count").textContent = `Paso ${k+1} de ${n}`;
@@ -245,6 +246,9 @@ const Anim = {
         fs -= 1; row.style.fontSize = fs + "px"; row.style.columnGap = Math.round(fs * .45) + "px";
       }
       if(row.scrollWidth > avail + 1) row.style.flexWrap = "wrap";
+      // si una sola pieza sigue siendo más ancha que la pantalla, se puede deslizar y se avisa
+      const hint = q(".a-hint");
+      if(hint) hint.hidden = !(stage.scrollWidth > stage.clientWidth + 1);
     }
     // Copia fantasma de lo que se va: se mueve y se desvanece
     function ghost(ol, dx, dy, moves){
