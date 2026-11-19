@@ -1,16 +1,3 @@
-# Versión fusionada (v6 + Constelación)
-
-Esta versión junta dos proyectos que venían de la misma base:
-- **prueba2 (v6)**: IA multi-proveedor del Escáner (Groq/Gemini/Mistral/OpenRouter/Anthropic), pase Pro firmado,
-  cabeceras de seguridad (CSP), datos del recibo escapados, matemáticas bonitas en el Escáner, pruebas (`node --test`).
-- **constelación**: pantalla principal con burbujas/nebulosas de racha, "Mi constelación" por bloque (estrellas = lecciones,
-  práctica y examen), barra del curso, inicio de sesión local, y selección de institución **por asignatura**.
-
-Todo el backend (`api/`, `lib/`, `tests/`, `vercel.json`) viene de prueba2; todo el frontend visual del mapa/constelación viene
-de constelación. Las variables de entorno son las de la tabla de v6 (ver `.env.example`).
-
----
-
 # v6 — qué cambió y cómo publicarla
 
 **Variables en Vercel → Settings → Environment Variables (después, Redeploy):**
@@ -373,3 +360,16 @@ Todo está en `js/plans.js`; los bloques de `data.js` no se tocaron:
 
 Pendiente: cargar el programa específico de cada COBAEM (Edomex/Morelos) y de la UAEM; basta con añadir un plan en `PLANS`
 y apuntarlo en `resolve()` de la institución. Para dar contenido a una unidad "pronto", crea el bloque en `data.js` y pon su id en `blocks`.
+
+---
+
+## Interfaz "Constelación" (fusionada en esta versión)
+
+La interfaz nueva reemplaza a la anterior (mapa de materias simple + pantalla de bloque con tarjetas). Todo lo demás
+—Escáner multi-proveedor, Dojo Pro, checkout, Arcade, cabeceras de seguridad y pruebas— sigue exactamente como en v6.
+
+- `js/constellation.js` + `css/constellation.css`: "Mi constelación" y el cielo de temas de cada bloque (lecciones, práctica y examen como estrellas).
+- `js/sun.js`, `js/nebulae.js`, `js/geo-art.js`, `js/alg-art.js`: el sol/colapso de la estrella, las nebulosas de racha y el arte de las burbujas de Geometría y Álgebra.
+- `js/map.js` + `css/map.css`: nuevo mapa de inicio (orbes de Desafío y racha, inicio de sesión local, "Ver colapso").
+- `js/ui.js`, `js/main.js`, `index.html`: barra del curso (← Constelación, Repasar errores, Inicio, tema) y vista de bloque con `Constellation.mountSky`.
+- `js/plans.js`, `js/subjects.js`: la institución (plan de estudios) se pregunta al entrar a cada asignatura, y el % de Matemáticas promedia todas las burbujas.
