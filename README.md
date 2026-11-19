@@ -1,27 +1,3 @@
-# v6 — qué cambió y cómo publicarla
-
-**Variables en Vercel → Settings → Environment Variables (después, Redeploy):**
-
-| Variable | Valor | Para qué |
-|---|---|---|
-| `GROQ_API_KEY` y/o `GEMINI_API_KEY` | tu key | La IA del Escáner (pon al menos una; mejor dos) |
-| `PRO_SECRET` | texto largo aleatorio (≥ 16 caracteres) | "Sello" del pase Pro |
-| `PRO_FREE_TEST` | `1` | SOLO pruebas: el pase se entrega gratis. Quítala para exigir pago verificado |
-| `PRO_REQUIRED` | `1` | El Escáner exige Pro. Sin ella, el Escáner es gratis para todos |
-| `DIAG_KEY` | texto ≥ 8 caracteres | Abre `/api/diagnostico-ia?clave=TU_DIAG_KEY` (sin ella está desactivado) |
-
-**Arreglos de v6 sobre v5:** modelos de Groq vigentes (los anteriores fueron retirados), errores que dicen la causa real
-(key inválida / modelo retirado / IA saturada / lenta), `/api/diagnostico-ia` protegido, límite de peticiones también en
-`/api/pro-activar`, cabeceras de seguridad (CSP, X-Frame-Options…), datos del recibo escapados, el checkout espera el pase antes
-de mostrar "Continuar", fotos PNG transparentes con fondo blanco y compresión más rápida, protección contra doble clic.
-
-**Limitaciones conocidas (dilas en el hackatón):** el pase es compartible (no hay cuentas); el límite de peticiones es "mejor
-esfuerzo" por instancia; un mismo pago aprobado puede canjearse más de una vez (no hay base de datos de pagos usados); y los
-beneficios del Arcade Pro (vidas infinitas, mini-examen) siguen decidiéndose en el navegador. Con `PRO_FREE_TEST=1` el pago es
-decorativo. Pruebas: `node --test` (22 pruebas).
-
----
-
 # Derivadas Dojo
 
 Una app tipo "Duolingo de derivadas" para practicar cálculo diferencial
@@ -150,7 +126,7 @@ derivadas-dojo/
 ├─ js/camara.js         captura/compresión de la foto, llamada a /api/variantes y sus pantallas
 ├─ api/                 funciones de servidor (Vercel): crear/verificar pago y generar variantes
 ├─ lib/mp.js            helpers de Mercado Pago + candado de "solo cuentas de prueba"
-├─ lib/ai.js            capa de IA multi-proveedor (Escáner de problemas)
+├─ lib/ai.js            helpers para hablar con la API de Anthropic (Escáner de problemas)
 ├─ vercel.json          configuración de publicación
 └─ favicon.svg
 ```
@@ -295,51 +271,58 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
   `localStorage.removeItem("derivadas-dojo-pro-v1")`.
 - Agregar un tipo de ejercicio: añade `{level, name, fn(){ return {q, ok, bad:[3 errores], why} }}` a `GENS`.
 
-## Escáner de problemas (cámara + IA) — v3 multi-proveedor
+## Escáner de problemas (cámara + IA) — nuevo
 
-`camara.html` (tarjeta "📷 Escáner de problemas" en la pantalla principal). El alumno toma o sube una foto
-(o **escribe el problema a mano**) y la app genera variantes del mismo tema y dificultad, con solución paso a paso.
+`camara.html` (enlazado desde una tarjeta en la pantalla principal, "📷 Escáner de problemas").
+El alumno toma una foto a un problema de derivadas (o sube una que ya tenga), y la app:
 
-### Cómo funciona ahora (y por qué ya no se cuelga)
+1. Comprime la foto en el propio navegador (`js/camara.js`, canvas a ≤1400px, JPEG) antes de enviarla.
+2. La manda a `api/variantes.js`, que llama a la API de **Google Gemini** con la imagen.
+3. La IA transcribe el problema, identifica tema y dificultad, y genera 3/4/6 **variantes**: mismo
+   tema y técnica, misma dificultad aproximada, pero con números/funciones distintos — cada una con
+   su **solución paso a paso** y resultado final.
+4. Si la foto no trae un problema de derivadas legible, se avisa y se puede intentar con otra.
 
-El error `504 en 30 s → 504 en 25 s` pasaba porque todo dependía de **una sola llamada pesada a Gemini**
-(leer foto + inventar variantes + escribir soluciones) y el "respaldo" era otro modelo **del mismo proveedor**.
-Ahora son **dos pasos pequeños** y **varios proveedores**:
+¿Por qué Gemini y no otra IA? Tiene un **nivel gratis real, sin pedir tarjeta**. Tiene límites de
+cuántas fotos por minuto/día se pueden analizar gratis; si se llegan a pasar, la API simplemente
+contesta "espera un poco" (error 429) y vuelve a funcionar sola, gratis, en la siguiente ventana —
+no hay que pagar nada ni configurar nada para que se recupere.
 
-1. `api/leer.js` — foto → **texto** del problema (salida cortísima, es el único paso con visión).
-2. El alumno ve el texto en una caja y lo **puede corregir** (exponentes, signos…).
-3. `api/variantes.js` — texto → N variantes (**sin imagen**, mucho más rápido).
+**Esta función es gratis por ahora, a propósito** (no está detrás de Dojo Pro). El código deja listo
+dónde activarlo como Pro más adelante:
 
-Cada paso se ejecuta con **carrera escalonada entre proveedores** (`lib/ai.js`): se lanza el primero; si no contesta
-en 9 s o falla, se lanza el siguiente **sin cancelar al primero**; gana el primero que devuelva un JSON válido.
-Proveedores soportados (solo se usan los que tengan API key): **Groq** (gratis, muy rápido, visión), **Gemini**,
-**Mistral**, **OpenRouter** y **Anthropic (Claude)**.
-Si la foto no se puede leer con ninguno, la app **no se bloquea**: deja escribir el problema y sigue.
+- `js/ui.js`: la tarjeta "Escáner de problemas" en la pantalla principal (justo antes de la tarjeta de
+  Dojo Pro) — ahí se podría condicionar a `Pay.isPro()` igual que el Arcade.
+- `api/variantes.js`: trae una nota al inicio de qué validar en el servidor antes de llamar a la IA,
+  si se quiere evitar que alguien use el endpoint directamente sin haber pagado (hoy, igual que el
+  resto del Arcade, el estado "Pro" solo vive en `localStorage` del navegador — una protección real
+  necesitaría mandar y verificar el comprobante de pago, como ya hace `lib/mp.js`).
 
-### Configuración
+### Configuración (una sola vez)
 
-1. Consigue al menos una key (mejor 2: si una está lenta o en límite, usa la otra):
-   - **Groq** (recomendada, gratis sin tarjeta): console.groq.com/keys → `GROQ_API_KEY`
-   - **Gemini** (gratis): aistudio.google.com/apikey → `GEMINI_API_KEY`
-   - Opcionales: `MISTRAL_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY` (la mejor para letra manuscrita, de pago).
-2. Local: cópialas en `.env.local` (ver `.env.example`) y corre `vercel dev`.
-   Vercel: Settings → Environment Variables, y después **Redeploy**.
-3. Abre `https://TU-SITIO.vercel.app/api/diagnostico-ia`: prueba cada proveedor con texto y con imagen y muestra
-   cuánto tarda y si funciona. Los nombres de modelo se pueden cambiar con variables (`GROQ_VISION_MODEL`, etc.)
-   si Google/Groq retiran alguno ("modelo no encontrado").
+1. Crea una API key **gratis** en [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+   (inicia sesión con una cuenta de Google; no pide tarjeta).
+2. Pégala como variable de entorno `GEMINI_API_KEY`:
+   - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
+   - Vercel: Settings → Environment Variables → `GEMINI_API_KEY` → después hay que hacer
+     **Redeploy** (las variables nuevas no aplican al deploy que ya estaba publicado).
+3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-2.5-flash`).
 
-Necesita servidor (Vercel o `vercel dev`); no funciona abriendo `index.html` con doble clic.
-Sigue siendo **gratis para todos a propósito**; `api/variantes.js` trae la nota de dónde validar el pago si se vuelve Pro.
+Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
+abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
+
+Si en algún momento quieres volver a usar Claude (Anthropic) en vez de Gemini —por ejemplo porque
+ya tienes cuenta ahí, o porque quieres mejor calidad en el reconocimiento de letra manuscrita— el
+único archivo que hay que tocar es `lib/ai.js`: ahí vive toda la llamada a la IA.
 
 ### Archivos
 
 | Archivo | Qué es |
 |---|---|
-| `camara.html` / `js/camara.js` | Pantallas: foto → lectura → texto editable → variantes. Respaldo por texto si falla la visión. |
-| `api/leer.js` | Foto → texto del problema (visión). |
-| `api/variantes.js` | Texto → variantes con solución (sin imagen). |
-| `api/diagnostico-ia.js` | Mide cada proveedor configurado. |
-| `lib/ai.js` | Adaptadores (Groq/Gemini/Mistral/OpenRouter/Anthropic), carrera escalonada y JSON tolerante. |
+| `camara.html` | Página del Escáner (captura/sube foto, elige cuántas variantes, muestra resultados). |
+| `js/camara.js` | Captura/compresión de la foto, llamada a `/api/variantes` y render de las pantallas. |
+| `api/variantes.js` | Endpoint serverless: recibe la foto, llama a la IA y valida/formatea su respuesta. |
+| `lib/ai.js` | Helper compartido para hablar con la API de Gemini (igual rol que `lib/mp.js` para pagos). |
 
 ## Planes de estudio por institución
 
@@ -361,21 +344,14 @@ Todo está en `js/plans.js`; los bloques de `data.js` no se tocaron:
 Pendiente: cargar el programa específico de cada COBAEM (Edomex/Morelos) y de la UAEM; basta con añadir un plan en `PLANS`
 y apuntarlo en `resolve()` de la institución. Para dar contenido a una unidad "pronto", crea el bloque en `data.js` y pon su id en `blocks`.
 
----
+## Portada, institución y estrellas
 
-## Interfaz "Constelación" (fusionada en esta versión)
+- Al abrir la app se ve **Matemáticas en grande**; al tocarla se aleja la vista y aparecen las asignaturas.
+- La **institución** ya no se pregunta al abrir la app: se pregunta al entrar a una asignatura (una vez por asignatura; se recuerda y se cambia desde el inicio del curso con "Cambiar institución").
+- Las **estrellas** del fondo brillan un poco más cuando el cursor se acerca (`MapScreen._bindStars`).
 
-La interfaz nueva reemplaza a la anterior (mapa de materias simple + pantalla de bloque con tarjetas). Todo lo demás
-—Escáner multi-proveedor, Dojo Pro, checkout, Arcade, cabeceras de seguridad y pruebas— sigue exactamente como en v6.
+## Sol-faro y agujero negro
 
-- `js/constellation.js` + `css/constellation.css`: "Mi constelación" y el cielo de temas de cada bloque (lecciones, práctica y examen como estrellas).
-- `js/sun.js`, `js/nebulae.js`, `js/geo-art.js`, `js/alg-art.js`: el sol/colapso de la estrella, las nebulosas de racha y el arte de las burbujas de Geometría y Álgebra.
-- `js/map.js` + `css/map.css`: nuevo mapa de inicio (orbes de Desafío y racha, inicio de sesión local, "Ver colapso").
-- `js/ui.js`, `js/main.js`, `index.html`: barra del curso (← Constelación, Repasar errores, Inicio, tema) y vista de bloque con `Constellation.mountSky`.
-- `js/plans.js`, `js/subjects.js`: la institución (plan de estudios) se pregunta al entrar a cada asignatura, y el % de Matemáticas promedia todas las burbujas.
-
-### Añadido después: temas de Aritmética y requisitos bloqueantes
-
-- `js/ari-constellation.js`: constelación de **temas** de Aritmética (solo el mapa de temas, sin lecciones ni examen todavía; se edita en `ARI_TOPICS`).
-- `js/subjects.js`: los requisitos con `min` son **bloqueantes** (`missingReqs()` / `isUnlocked()`): una materia no se abre hasta que su requisito alcance ese % (p. ej. Cálculo integral exige Cálculo diferencial al 100 %). Aritmética queda sobre la línea Matemáticas–Álgebra.
-- `js/map.js`, `css/map.css`, `css/constellation.css`: ajustes del mapa para lo anterior.
+- La burbuja central es un **sol** (`js/sun.js`) cuyo color sigue al % total: roja → naranja → amarilla → blanca → blanco-azulada, y sus 12 rayos se encienden con el avance.
+- El % de Matemáticas (centro) es el promedio del % de las 5 burbujas que la orbitan. Al llegar al **100 %** aparece el botón "Colapsar la estrella" y, al pulsarlo, la estrella colapsa, explota y queda un **agujero negro**; las burbujas se estiran ("espaguetificación"), caen y reaparecen girando alrededor. Después las burbujas ya no muestran porcentajes. El botón "↻ Ver colapso" la repite.
+- Vista previa: añade `?pct=60` o `?fase=agujero` a la URL.

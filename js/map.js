@@ -438,10 +438,19 @@ const MapScreen = {
   _applyView(){
     const vw = window.innerWidth, vh = window.innerHeight;
     const small = vw < 820;
-    const topPad = 70, botPad = 80;
-    const availH = vh - topPad - botPad;
-    const fit = Math.max(0.25, Math.min(vw / this.W, availH / this.H));
+    const compact = small || vh < 560;                 // celular (vertical u horizontal)
+    const short = vh < 560;                            // celular en horizontal
+    // En celular solo se encuadra el racimo (centro + 5 ramas), no todo el lienzo de 1280x800
+    const bx = 317, by = 169, bw = 646, bh = 430;
+    const topPad = compact ? (short ? 56 : 140) : 70;
+    const botPad = compact ? (short ? 16 : 220) : 80;
+    const availH = Math.max(120, vh - topPad - botPad);
+    const fit = compact
+      ? Math.max(0.25, Math.min((vw - 24) / bw, availH / bh))
+      : Math.max(0.25, Math.min(vw / this.W, availH / this.H));
     let tx, ty, S;
+    this.el.classList.toggle("m-compact", compact);
+    this.el.classList.toggle("m-short", short);
 
     if(this.intro){
       const want = small ? Math.min(vw*0.8, vh*0.5) : Math.min(vh*0.64, vw*0.5);
@@ -450,20 +459,28 @@ const MapScreen = {
       ty = vh/2 - this.CY*S;
     } else if(!this.focus){
       S = fit;
-      tx = (vw - this.W*fit) / 2;
-      ty = topPad + (availH - this.H*fit) / 2;
+      if(compact){
+        tx = vw/2 - (bx + bw/2)*S;
+        ty = topPad + availH/2 - (by + bh/2)*S;
+      } else {
+        tx = (vw - this.W*fit) / 2;
+        ty = topPad + (availH - this.H*fit) / 2;
+      }
     } else {
       const id = this.focus;
       let p, d;
       if(SUBJECTS[id].kind === "branch"){ p = this._branchPos(id); d = 132; }
       else { p = this.extraPos[id]; d = p.d; }
-      const want = small ? Math.min(vw*0.46, vh*0.26) : Math.min(vh*0.38, vw*0.24);
+      const portraitSmall = small && !short;
+      const want = portraitSmall ? Math.min(vw*0.46, vh*0.26) : Math.min(vh*0.5, vw*0.24);
       S = Math.max(fit, want / d);
-      const sx = small ? vw/2 : vw*0.31;
-      const sy = small ? vh*0.27 : vh*0.5;
+      const sx = portraitSmall ? vw/2 : vw*0.27;
+      const sy = portraitSmall ? vh*0.27 : vh*0.5;
       tx = sx - p.x*S;
       ty = sy - p.y*S;
     }
+    // textos más grandes dentro de las burbujas cuando el mapa se ve reducido
+    this.el.style.setProperty("--tb", compact && !this.focus ? Math.max(1, Math.min(1.5, 0.8 / S)).toFixed(2) : "1");
     this.world.style.transform = `translate(${tx}px,${ty}px) scale(${S})`;
   },
 

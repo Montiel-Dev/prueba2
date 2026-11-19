@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/arcade.css">
+<link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
 <div class="wrap wide">
@@ -56,7 +57,6 @@
    ========================================================= */
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const AMOUNT = 49, CURRENCY = 'MXN';
 
 /* a dónde volver: solo páginas .html del mismo sitio */
@@ -221,25 +221,23 @@ async function processing(){
 const mkId = ()=> 'SIM-' + Date.now().toString().slice(-8) + Math.floor(1000 + Math.random()*9000);
 const fmtDate = d => new Date(d).toLocaleString('es-MX', { dateStyle:'long', timeStyle:'short' });
 
-async function success(card, existing){
+function success(card, existing){
   steps(2);
   const r = existing || {
     paymentId: mkId(), amount: AMOUNT, currency: CURRENCY, date: new Date().toISOString(),
     method: card.brand, last4: card.last4, email: card.email, mode: 'simulado'
   };
   if(!existing) Pay.grant(r);
-  // Espera (máx. 5 s) a recibir el pase del servidor antes de mostrar "Continuar", para no navegar a medias.
-  if(!Pay.token()) await Promise.race([Pay.activate({ payment_id: r.paymentId }).catch(()=>false), sleep(5000)]);
   $('panel').innerHTML = `
     <div style="text-align:center">
       <div class="okmark">✓</div>
       <h2>${existing ? 'Ya tienes Arcade Pro' : '¡Pago aprobado!'}</h2>
       <p class="mu" style="margin:4px 0 0">${existing ? 'Tu compra de prueba sigue activa.' : 'Gracias por apoyar el Dojo. Ya tienes vidas infinitas y los mini-exámenes.'}</p>
       <div class="receipt">
-        <div><span>Comprobante</span><b>#${E(r.paymentId)}</b></div>
+        <div><span>Comprobante</span><b>#${r.paymentId}</b></div>
         <div><span>Producto</span><span>Arcade Pro</span></div>
-        ${r.last4 ? `<div><span>Método</span><span>${E(String(r.method).toUpperCase())} •••• ${E(r.last4)}</span></div>` : ''}
-        <div><span>Total</span><b>$${Number(r.amount).toFixed(2)} ${E(r.currency)}</b></div>
+        ${r.last4 ? `<div><span>Método</span><span>${String(r.method).toUpperCase()} •••• ${r.last4}</span></div>` : ''}
+        <div><span>Total</span><b>$${Number(r.amount).toFixed(2)} ${r.currency}</b></div>
         <div><span>Fecha</span><span>${fmtDate(r.date)}</span></div>
         <div><span>Estado</span><span style="color:var(--success)">● Aprobado (simulado)</span></div>
       </div>

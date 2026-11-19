@@ -7,8 +7,6 @@
    de una cuenta de prueba (ver lib/mp.js).
    ========================================================= */
 
-const escHTML = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
 const Pay = {
   // "local"       = checkout simulado propio (checkout.html). Funciona sin servidor ni cuentas.
   // "mercadopago" = Checkout Pro real en modo prueba (necesita Vercel + MP_ACCESS_TOKEN).
@@ -45,20 +43,6 @@ const Pay = {
     location.href = d.url;
   },
 
-  TOKEN_KEY: "derivadas-dojo-pro-token",
-  token(){ try{ return localStorage.getItem(this.TOKEN_KEY) || ""; }catch(e){ return ""; } },
-
-  // Pide al servidor el pase firmado (gratis si PRO_FREE_TEST=1; si no, exige pago verificado).
-  async activate(info){
-    if(location.protocol === "file:") return false;
-    try{
-      const r = await fetch("/api/pro-activar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(info || {}) });
-      const d = await r.json().catch(() => ({}));
-      if(r.ok && d.token){ localStorage.setItem(this.TOKEN_KEY, d.token); return true; }
-    }catch(e){}
-    return false;
-  },
-
   // Guarda el comprobante (lo llama checkout.html al aprobarse el pago simulado)
   grant(data){
     localStorage.setItem(this.KEY, JSON.stringify(data));
@@ -83,7 +67,6 @@ const Pay = {
       if(d.ok){
         localStorage.setItem(this.KEY, JSON.stringify({ paymentId: d.paymentId, amount: d.amount, currency: d.currency, date: new Date().toISOString() }));
         localStorage.removeItem(this.PENDING);
-        await this.activate({ payment_id: d.paymentId, ref });
         return { ok:true, paymentId: d.paymentId };
       }
       return { ok:false, status: d.status || "error", message: d.error };
@@ -98,7 +81,7 @@ const Pay = {
       return `
       <div class="lesson-card pay-card pay-active">
         <div class="pay-head"><h2>✓ Dojo Pro activo</h2><span class="sim-tag">PAGO SIMULADO</span></div>
-        <p class="lead">Gracias por apoyar el Dojo. Comprobante de prueba #${escHTML(r.paymentId)}.
+        <p class="lead">Gracias por apoyar el Dojo. Comprobante de prueba #${r.paymentId}.
         Ya tienes <strong>vidas infinitas</strong> en el Modo Vidas y los <strong>Mini-exámenes</strong> del Arcade.</p>
         <div class="action-row">
           <a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Ir al Arcade</a>
