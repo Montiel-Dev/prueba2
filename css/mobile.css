@@ -55,9 +55,8 @@ img, svg, canvas, video{ max-width:100%; }
 
   /* Desafío (izq.) y racha (der.) en una misma fila abajo; la leyenda justo encima */
   .m-challenge{ bottom:calc(16px + env(safe-area-inset-bottom, 0px)); left:14px; }
-  .m-streak{ width:140px; height:140px; right:2px; bottom:calc(6px + env(safe-area-inset-bottom, 0px)); }
   .m-legend{
-    bottom:calc(150px + env(safe-area-inset-bottom, 0px)); padding:0 14px;
+    bottom:auto; top:calc(96px + env(safe-area-inset-top, 0px)); padding:0 14px;
     font-size:12px; gap:6px 16px;
   }
   .m-legend .dot{ width:13px; height:13px; }
@@ -83,7 +82,7 @@ img, svg, canvas, video{ max-width:100%; }
   .m-legend{ display:none; }
   .m-challenge{ width:72px; height:72px; bottom:10px; left:10px; }
   .m-challenge .m-orb-sub{ display:none; }
-  .m-streak{ width:96px; height:96px; right:6px; bottom:6px; }
+  .m-streak{ --ns:150px; right:6px; bottom:6px; }
   .m-streak .m-orb-sub, .m-streak .m-neb-name{ display:none; }
   .m-panel{
     left:auto; right:12px; top:50%; bottom:auto; width:min(54vw, 480px);
@@ -112,4 +111,21 @@ img, svg, canvas, video{ max-width:100%; }
   .row > .btn, .gap > .btn{ flex:1 1 100%; }
   .modal{ padding:20px 16px; max-height:92dvh; overflow-y:auto; }
   .ccard{ max-width:100%; }
+}
+
+/* ---------- Pilares de la Creación (nebulosa de la racha): grandes en PC y celular ---------- */
+.m-streak{
+  --ns:clamp(240px, 24vw, 360px);
+  width:var(--ns); height:var(--ns); right:clamp(8px, 3vw, 56px); bottom:clamp(40px, 7vh, 90px);
+}
+.m-streak::before{ width:52%; height:52%; margin:calc(var(--ns) * -.26) 0 0 calc(var(--ns) * -.26); }
+.m-streak .m-orb-num{ font-size:calc(var(--ns) * .2); }
+.m-streak svg.m-flame{ width:calc(var(--ns) * .12); height:calc(var(--ns) * .12); }
+.m-streak .m-orb-sub{ font-size:max(11px, calc(var(--ns) * .055)); }
+.m-neb-name{ font-size:max(11px, calc(var(--ns) * .055)); bottom:calc(var(--ns) * .02); }
+@media (max-width:820px){
+  .m-streak{ --ns:min(60vw, 30vh, 250px); right:-2px; bottom:calc(2px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height:560px) and (orientation:landscape){
+  .m-streak{ --ns:150px; right:6px; bottom:6px; }
 }

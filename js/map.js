@@ -443,7 +443,7 @@ const MapScreen = {
     // En celular solo se encuadra el racimo (centro + 5 ramas), no todo el lienzo de 1280x800
     const bx = 317, by = 169, bw = 646, bh = 430;
     const topPad = compact ? (short ? 56 : 140) : 70;
-    const botPad = compact ? (short ? 16 : 220) : 80;
+    const botPad = compact ? (short ? 16 : Math.round(Math.min(330, Math.max(200, vh*0.36)))) : 80;
     const availH = Math.max(120, vh - topPad - botPad);
     const fit = compact
       ? Math.max(0.25, Math.min((vw - 24) / bw, availH / bh))
