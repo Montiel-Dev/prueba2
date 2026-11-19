@@ -172,6 +172,8 @@ async function readPhoto(){
     State.readWarn = e && e.name === "AbortError" ? "La lectura de la foto tardó demasiado."
       : (e && e.message === "file") ? "El Escáner necesita el sitio en un servidor (Vercel o `vercel dev`)."
       : "No pude conectar con el servidor. Revisa tu conexión.";
+    console.error("[escáner] leer falló:", e);
+    State.detail = (e && (e.name + ": " + e.message)) + " · origen " + location.origin;
   }finally{ stop(); State.busy = false; }
   if(State.readWarn) State.readWarn += " Escribe el problema aquí abajo y sigue sin foto, o toma otra.";
   State.step = "preview";
@@ -213,6 +215,8 @@ async function generate(){
     State.readWarn = e && e.name === "AbortError"
       ? "La IA tardó demasiado. Vuelve a intentarlo (con menos variantes suele ir más rápido)."
       : "No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
+    console.error("[escáner] variantes falló:", e);
+    State.detail = (e && (e.name + ": " + e.message)) + " · origen " + location.origin;
   }finally{ stop(); State.busy = false; }
   render();
 }
