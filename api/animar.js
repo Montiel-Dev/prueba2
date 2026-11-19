@@ -25,11 +25,26 @@ CÓMO ARMAR LA ANIMACIÓN (para que se entienda al 100 %):
 5. Simplifica en 1 a 3 cuadros: UN solo movimiento por cuadro (quitar paréntesis, juntar términos,
    cancelar, factorizar). Si cambian dos cosas, hazlas en dos cuadros.
 6. Último cuadro "Resultado": e = la derivada final simplificada; n = "Esa es la derivada de ...".
-- "n" explica QUÉ se hizo y POR QUÉ, en frases completas y sencillas (15 a 30 palabras), por ejemplo:
+- "n" explica QUÉ se hizo y POR QUÉ, en frases completas, cortas y sencillas (10 a 22 palabras), por ejemplo:
   "El exponente 3 baja a multiplicar y el exponente pasa de 3 a 2." Nunca escribas solo "Simplifica".
 - "e" es UNA línea corta con lo esencial. Los nombres de las partes (u, v, u', v') y sus valores
   van en "d", no en "e".
 - "t": "1. Acción en pocas palabras". Matemática 100 % correcta: verifica cada cuadro con la solución de referencia.
+
+LENGUAJE: EXPLICA COMO A UN NIÑO DE 5 AÑOS (lo más importante de todo):
+- Quien lee NUNCA ha visto una derivada. Cada "n" usa palabras de todos los días, 1 o 2 frases CORTAS (10 a 22 palabras),
+  una sola idea por cuadro. Nada de jerga sin explicarla: la primera vez di "la derivada (qué tan rápido cambia)".
+- Nombra las partes como se ven: "la parte de arriba", "la parte de abajo", "lo de adentro de la raíz", "el número de
+  arriba (exponente)". Di "u" y "v" solo después de decir qué son ("llamemos u a lo de arriba").
+- Usa comparaciones sencillas cuando ayuden: fracción = "un pastel partido: arriba cuántas rebanadas, abajo en cuántas
+  se partió"; regla de la cadena = "cajas una dentro de otra: primero la de afuera, luego la de adentro";
+  cancelar = "lo mismo arriba y abajo se quita, como 3 entre 3".
+- Cada "n" dice QUÉ hacemos y POR QUÉ, y termina con lo que vamos a ver o lo que quedó. Prohibido: "es evidente",
+  "se sigue que", "aplicando", "sustituyendo en la expresión". Mejor: "ponemos", "cambiamos", "quitamos", "juntamos".
+- Los títulos "t" son acciones simples: "1. Miramos el problema", "2. Elegimos la regla", "3. Derivamos la parte de arriba",
+  "4. Lo ponemos en la fórmula", "5. Juntamos", "6. Dejamos todo más sencillo", "7. ¡Listo! Esta es la respuesta".
+- El primer cuadro dice en una frase qué tipo de problema es y cuál es el plan ("Hay una fracción, así que usaremos la
+  regla de las fracciones").
 
 LEGIBILIDAD EN CELULAR (REGLAS DURAS: la pantalla mide ~350 px de ancho; una expresión enorme se ve como un revoltijo):
 - "e" debe ser CORTA: ideal menos de 90 caracteres, nunca más de 140. Si la expresión completa sería más larga, NO la

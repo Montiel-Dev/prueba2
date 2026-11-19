@@ -81,7 +81,15 @@ function mathReadFactor(s, i){
   }
 
   if(c === "√"){
-    const r = mathReadFactor(s, i+1);
+    let r = mathReadFactor(s, i+1);
+    // √sec(x), √ln(x): la raíz cubre la función completa con su argumento, no solo el nombre
+    if(r && r.item.kind === "func" && (s[r.next] === "(" || s[r.next] === "[")){
+      const j = mathMatchClose(s, r.next);
+      if(j > 0){
+        const arg = mathResolve(mathParse(s.slice(r.next+1, j)));
+        r = { item:{ t:"f", kind:"func", html: r.item.html + '<span class="tok-op">(</span>' + mathHtml(arg) + '<span class="tok-op">)</span>' }, next: j+1 };
+      }
+    }
     if(r){
       const f = r.item;
       const body = f.kind === "group" ? f.innerHtml : f.html;

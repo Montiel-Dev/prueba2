@@ -23,11 +23,15 @@ Recibes el texto de UN problema de derivadas. Haz esto:
    dificultad parecida, con números y/o funciones distintos (no copies el original). Deben
    resolverse con los mismos pasos.
 3. Para cada variante da la solución paso a paso en español sencillo: entre 3 y 5 pasos, cada
-   uno de una sola línea (máx. ~25 palabras), y el resultado final ya simplificado.
+   uno de una sola línea (máx. ~18 palabras), y el resultado final ya simplificado.
    REVISA que cada derivada esté correcta antes de responder.
 
 Si el problema original tiene fracciones o raíces, las variantes también deben tenerlas, y los
 pasos y el resultado deben mostrarlas igual (como fracciones, no divididas con una sola diagonal).
+
+LENGUAJE DE LOS PASOS: explica como a un niño de 5 años. Palabras de todos los días, frases cortas, una idea por paso,
+sin jerga sin explicar ("la parte de arriba", "la parte de abajo", "lo de adentro de la raíz"). Empieza cada paso con un
+verbo simple: "Miramos", "Derivamos", "Ponemos", "Quitamos", "Juntamos". Máximo ~18 palabras por paso.
 
 VARIANTES LIMPIAS Y LEGIBLES EN CELULAR (reglas duras):
 - Mismo tema y técnica, pero NUNCA más enredadas que el original: nada de fracciones dentro de fracciones

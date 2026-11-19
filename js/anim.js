@@ -161,7 +161,9 @@ const Anim = {
     return String(str).trim().split(/\s+/).map(raw=>{
       let [t, hl, cancel] = pre(raw), id = null;
       const mm = /^([a-z]{1,3}\d?):(.+)$/.exec(t);
-      if(mm){ id = mm[1]; let h2, c2; [t, h2, c2] = pre(mm[2]); hl = hl || h2; cancel = cancel || c2; }
+      if(mm){ id = mm[1]; let h2, c2; [t, h2, c2] = pre(mm[2]); hl = hl || h2; cancel = cancel || c2;
+        const m2 = /^([a-z]{1,3}\d?):(.+)$/.exec(t);          // segundo id pegado ("fn:*a:...") no se muestra
+        if(m2){ let h3, c3; [t, h3, c3] = pre(m2[2]); hl = hl || h3; cancel = cancel || c3; } }
       if(!id){ seen[t] = (seen[t]||0) + 1; id = t + "#" + seen[t]; }
       return { id, text: t, hl, cancel };
     });
@@ -237,7 +239,7 @@ const Anim = {
     };
     // Si la expresión no cabe en una línea, se achica la letra (hasta 15 px) en vez de partirla en pedazos
     function fit(){
-      row.style.fontSize = ""; row.style.flexWrap = ""; row.style.columnGap = "";
+      row.style.fontSize = ""; row.style.flexWrap = ""; row.style.columnGap = ""; row.style.flexDirection = ""; row.style.alignItems = "";
       let fs = parseFloat(getComputedStyle(row).fontSize) || 28;
       const avail = stage.clientWidth - 32;
       row.style.flexWrap = "nowrap";
@@ -245,7 +247,10 @@ const Anim = {
       while(row.scrollWidth > avail + 1 && fs > 15){
         fs -= 1; row.style.fontSize = fs + "px"; row.style.columnGap = Math.round(fs * .45) + "px";
       }
-      if(row.scrollWidth > avail + 1) row.style.flexWrap = "wrap";
+      if(row.scrollWidth > avail + 1){
+        // no cabe en un renglón: cada pieza va en su propio renglón, centrada, como en el cuaderno
+        row.style.flexWrap = "nowrap"; row.style.flexDirection = "column"; row.style.alignItems = "center"; row.style.rowGap = "6px";
+      }
       // si una sola pieza sigue siendo más ancha que la pantalla, se puede deslizar y se avisa
       const hint = q(".a-hint");
       if(hint) hint.hidden = !(stage.scrollWidth > stage.clientWidth + 1);

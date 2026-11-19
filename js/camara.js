@@ -56,12 +56,14 @@ function normMath(t){
 /* Cuadros de animación: normaliza cada pieza sin tocar los prefijos *, ! ni "id:" */
 function normPiece(raw){
   const m1 = /^([*!]*)(?:([a-z]{1,3}\d?):)?([*!]*)(.*)$/.exec(raw);
-  return m1[1] + (m1[2] ? m1[2] + ":" : "") + m1[3] + normMath(m1[4]);
+  // ids sueltos dentro de corchetes o paréntesis ("d/dx[a:ln(...)]") no se muestran
+  return m1[1] + (m1[2] ? m1[2] + ":" : "") + m1[3] + normMath(m1[4].replace(/([\[(])[a-z]{1,3}\d?:/g, "$1"));
 }
 /* Parte la expresión en piezas por espacios SOLO fuera de paréntesis: así una fracción o raíz que
    la IA escribió con espacios por dentro sigue siendo UNA pieza y no se rompe. */
 function splitPieces(e){
-  const s = String(e || "").trim(), out = []; let cur = "", d = 0;
+  // "fn: f(x)" o "a: 3x" (con espacio tras los dos puntos) se pega: "fn:f(x)"
+  const s = String(e || "").trim().replace(/(^|\s)([*!]*[a-z]{1,3}\d?):\s+/g, "$1$2:"), out = []; let cur = "", d = 0;
   for(const ch of s){
     if(ch === "(" || ch === "[") d++;
     else if(ch === ")" || ch === "]") d = Math.max(0, d - 1);

@@ -170,3 +170,8 @@ img, svg, canvas, video{ max-width:100%; }
   .var-steps li{ counter-increment:paso; position:relative; padding:10px 12px 10px 40px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; font-size:15.5px; line-height:1.7; overflow-x:auto; }
   .var-steps li::before{ content:counter(paso); position:absolute; left:10px; top:10px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font:700 13px var(--font-ui,Inter,sans-serif); display:grid; place-items:center; }
 }
+
+/* explicación grande, con barra de color: lo primero que se lee en cada paso */
+.anim-cap{ border-left:4px solid var(--accent); padding:6px 0 6px 12px; font-size:18px; line-height:1.65; }
+.a-row > .a-tok:first-child, .a-row > .a-tok:last-child{ margin-left:0; margin-right:0; }
+.a-row[style*="column"] > .a-tok{ margin:0 auto; max-width:none; }
