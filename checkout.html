@@ -28,7 +28,7 @@
       <p class="mu" style="margin:0">Pago único · acceso permanente en este navegador</p>
       <div class="price">$49.00 <small class="mu" style="font:500 14px var(--font-ui)">MXN</small></div>
       <ul class="feat">
-        <li><i>♥</i><div><b>Modo Vidas</b><span>Ejercicios ilimitados al azar, 5 vidas estilo Duolingo y dificultad adaptativa.</span></div></li>
+        <li><i>♥</i><div><b>Vidas infinitas</b><span>En el Modo Vidas, los errores ya no te quitan vidas: practica sin parar.</span></div></li>
         <li><i>⏱</i><div><b>Mini-exámenes cronometrados</b><span>5, 10 o 20 preguntas, sin pistas, con nota, estrellas y corrección.</span></div></li>
         <li><i>★</i><div><b>Insignia PRO</b><span>Se muestra en todo el Dojo.</span></div></li>
       </ul>
@@ -51,7 +51,7 @@
    - El resultado depende del titular, igual que las tarjetas de prueba de Mercado Pago:
        APRO = aprobado · OTHE = rechazado · FUND = sin fondos · SECU = CVV inválido
        EXPI = vencida  · CONT = pendiente · otro nombre = aprobado
-   - Al aprobarse guarda el comprobante (Pay.grant) y desbloquea Vidas + Examen.
+   - Al aprobarse guarda el comprobante (Pay.grant) y desbloquea vidas infinitas + Examen.
    - Nunca se guarda el número completo ni el CVV: solo marca y últimos 4 dígitos.
    ========================================================= */
 const $ = id => document.getElementById(id);
@@ -231,7 +231,7 @@ function success(card, existing){
     <div style="text-align:center">
       <div class="okmark">✓</div>
       <h2>${existing ? 'Ya tienes Arcade Pro' : '¡Pago aprobado!'}</h2>
-      <p class="mu" style="margin:4px 0 0">${existing ? 'Tu compra de prueba sigue activa.' : 'Gracias por apoyar el Dojo. Tus módulos ya están desbloqueados.'}</p>
+      <p class="mu" style="margin:4px 0 0">${existing ? 'Tu compra de prueba sigue activa.' : 'Gracias por apoyar el Dojo. Ya tienes vidas infinitas y los mini-exámenes.'}</p>
       <div class="receipt">
         <div><span>Comprobante</span><b>#${r.paymentId}</b></div>
         <div><span>Producto</span><span>Arcade Pro</span></div>
@@ -242,7 +242,7 @@ function success(card, existing){
       </div>
       <div class="eyebrow" style="text-align:left">Desbloqueaste</div>
       <div class="unlock">
-        <a href="vidas.html"><b>♥ Modo Vidas</b><span>Ejercicios ilimitados al azar</span></a>
+        <a href="vidas.html"><b>♥ Vidas infinitas</b><span>Practica sin quedarte sin vidas</span></a>
         <a href="examen.html"><b>⏱ Mini-examen</b><span>Cronometrado, tipo examen real</span></a>
       </div>
       <a class="btn block lg" href="${NEXT}">Continuar</a>

@@ -181,7 +181,7 @@ Esta parte **sí necesita servidor**, así que funciona en Vercel o con `vercel 
   no una protección real contra alguien que edite su navegador.
 
 
-## Arcade Pro (Modo Vidas + Mini-examen, desbloqueados con el pago simulado)
+## Arcade (Modo Vidas gratis · Pro = vidas infinitas + Mini-examen)
 
 Funciona **sin servidor ni cuentas**: abre `index.html` (o usa Live Server) y listo.
 
@@ -193,7 +193,8 @@ Funciona **sin servidor ni cuentas**: abre `index.html` (o usa Live Server) y li
 | `checkout.html` | **Checkout simulado**: tarjeta con vista previa en vivo, validación (Luhn, vencimiento, CVV, correo), pasos de procesamiento, comprobante y confeti. |
 | `js/arcade-core.js` | Estado, vidas, generador de ejercicios y candado Pro compartidos. |
 
-`vidas.html` y `examen.html` **redirigen al hub si no hay Pro**: solo existen para quien pagó.
+**Gratis:** Modo Vidas con 5 vidas (se recuperan solas o con puntos). **Pro (pago simulado):** vidas infinitas y acceso al Mini-examen.
+`examen.html` redirige al hub si no hay Pro; `vidas.html` es libre.
 
 ### Probar el pago
 

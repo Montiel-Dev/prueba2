@@ -31,7 +31,7 @@ const save = ()=>{ try{ localStorage.setItem(CFG.KEY, JSON.stringify(S)); }catch
 /* Pro: lee el comprobante que guarda checkout.html (vía js/pay.js) */
 const isPro = ()=> typeof Pay !== 'undefined' && Pay.isPro();
 
-/* Guardia: vidas.html y examen.html solo se abren con Pro */
+/* Guardia: el examen solo se abre con Pro (el Modo Vidas es gratis; Pro = vidas infinitas) */
 function guard(){
   if(!isPro()){ location.replace('arcade.html?bloqueado=1'); return false; }
   return true;
@@ -58,12 +58,14 @@ function themeBtn(){
 
 /* ============ VIDAS ============ */
 function tick(){
+  if(isPro()){ S.lives = CFG.LIFE_MAX; S.t = Date.now(); return false; }   // Pro: vidas infinitas
   if(S.lives >= CFG.LIFE_MAX){ S.t = Date.now(); return false; }
   const n = Math.floor((Date.now() - S.t) / CFG.REGEN_MS);
   if(n > 0){ S.lives = Math.min(CFG.LIFE_MAX, S.lives + n); S.t += n * CFG.REGEN_MS; save(); return true; }
   return false;
 }
 function loseLife(){
+  if(isPro()) return;                                                     // Pro: no pierde vidas
   if(S.lives === CFG.LIFE_MAX) S.t = Date.now();
   S.lives = Math.max(0, S.lives - 1);
 }
@@ -74,6 +76,7 @@ function buyLife(){
 }
 const nextIn = ()=> Math.max(0, CFG.REGEN_MS - (Date.now() - S.t));
 function heartsHTML(lostIdx){
+  if(isPro()) return `<span class="hearts" aria-label="Vidas infinitas"><span class="full">♥</span> <b>∞</b></span>`;
   let h = '';
   for(let i=0;i<CFG.LIFE_MAX;i++) h += `<span class="${i < S.lives ? 'full' : 'empty'} ${i === lostIdx ? 'lost' : ''}">${i < S.lives ? '♥' : '♡'}</span>`;
   return `<span class="hearts" aria-label="${S.lives} de ${CFG.LIFE_MAX} vidas">${h}</span>`;

@@ -141,13 +141,12 @@ const UI = {
       ${this._planCard()}
       <div class="lesson-card">
         <div class="pay-head"><h2>Arcade</h2>${Pay.isPro() ? '<span class="sim-tag" style="color:var(--success);border-color:var(--success)">DESBLOQUEADO</span>' : '<span class="sim-tag">PRO</span>'}</div>
-        <p class="lead">Dos módulos para entrenar al máximo: <strong>Modo Vidas</strong> (ejercicios ilimitados al azar,
-        con vidas estilo Duolingo) y <strong>Mini-exámenes</strong> cronometrados tipo examen real.
-        ${Pay.isPro() ? "" : "Se desbloquean con el pago simulado de Arcade Pro."}</p>
+        <p class="lead">Dos módulos para entrenar al máximo: <strong>Modo Vidas</strong> (ejercicios ilimitados al azar; gratis con 5 vidas, con Pro vidas infinitas) y
+        <strong>Mini-exámenes</strong> cronometrados tipo examen real${Pay.isPro() ? "." : " (con Pro)."}</p>
         <div class="action-row">
           ${Pay.isPro()
             ? '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Modo Vidas</a> <a class="btn btn-primary" href="examen.html" style="text-decoration:none;display:inline-block">Mini-examen</a>'
-            : '<a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Ver el Arcade</a>'}
+            : '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Jugar Modo Vidas</a> <a class="btn btn-ghost" href="arcade.html" style="text-decoration:none;display:inline-block">Ver el Arcade</a>'}
         </div>
       </div>
       ${Pay.cardHTML()}

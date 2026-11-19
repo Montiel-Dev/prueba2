@@ -82,7 +82,7 @@ const Pay = {
       <div class="lesson-card pay-card pay-active">
         <div class="pay-head"><h2>✓ Dojo Pro activo</h2><span class="sim-tag">PAGO SIMULADO</span></div>
         <p class="lead">Gracias por apoyar el Dojo. Comprobante de prueba #${r.paymentId}.
-        Ya tienes desbloqueados el <strong>Modo Vidas</strong> y los <strong>Mini-exámenes</strong> del Arcade.</p>
+        Ya tienes <strong>vidas infinitas</strong> en el Modo Vidas y los <strong>Mini-exámenes</strong> del Arcade.</p>
         <div class="action-row">
           <a class="btn btn-primary" href="arcade.html" style="text-decoration:none;display:inline-block">Ir al Arcade</a>
         </div>
@@ -91,7 +91,7 @@ const Pay = {
     return `
       <div class="lesson-card pay-card">
         <div class="pay-head"><h2>Dojo Pro</h2><span class="sim-tag">PAGO SIMULADO</span></div>
-        <p class="lead">Activa el <strong>Arcade Pro</strong>: Modo Vidas con ejercicios ilimitados al azar y
+        <p class="lead">Activa el <strong>Arcade Pro</strong>: <strong>vidas infinitas</strong> en el Modo Vidas (gratis tienes 5) y
         Mini-exámenes cronometrados. Es una compra de demostración: pasas por un checkout
         completo, pero con tarjetas de prueba. <strong>No se cobra dinero real.</strong></p>
         <div class="action-row">
