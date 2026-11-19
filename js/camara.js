@@ -11,9 +11,10 @@
 
 const $app = document.getElementById("app");
 
-const MAX_DIM = 1400;        // tamaño máximo (px) de la foto ya comprimida
-const JPEG_Q = 0.82;
+const MAX_DIM = 1200;        // tamaño máximo (px) de la foto ya comprimida (más chica = más rápido)
+const JPEG_Q = 0.8;
 const MAX_SOURCE_MB = 20;    // límite del archivo original, antes de comprimir
+const CLIENT_TIMEOUT_MS = 70000; // si el servidor no responde en este tiempo, se avisa en vez de esperar sin fin
 
 const State = {
   step: "intro",      // intro | preview | loading | result | error
@@ -102,13 +103,24 @@ async function generate(){
     return render();
   }
 
+  // Contador de segundos en la pantalla de carga (no vuelve a renderizar todo).
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const el = document.getElementById("elapsed");
+    if(el) el.textContent = Math.round((Date.now() - t0) / 1000) + " s";
+  }, 500);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS);
+
   try{
     const r = await fetch("/api/variantes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: State.imageDataUrl, mime: State.mime, count: State.count })
+      body: JSON.stringify({ image: State.imageDataUrl, mime: State.mime, count: State.count }),
+      signal: ctrl.signal
     });
     const d = await r.json().catch(() => ({}));
+    console.log("[escáner] total", Math.round((Date.now() - t0) / 1000) + " s", "| servidor:", d.debug || d);
 
     if(!r.ok || d.error){
       State.step = "error"; State.canRetry = true;
@@ -126,7 +138,11 @@ async function generate(){
     State.step = "result";
   }catch(e){
     State.step = "error"; State.canRetry = true;
-    State.errorMsg = "No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
+    State.errorMsg = e && e.name === "AbortError"
+      ? "La IA tardó demasiado en responder. Intenta de nuevo (con otra foto o con menos variantes)."
+      : "No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
+  }finally{
+    clearInterval(tick); clearTimeout(timer);
   }
   render();
 }
@@ -193,7 +209,7 @@ function screenLoading(){
   <section class="card proc">
     <div class="spin"></div>
     <h3>Leyendo tu foto y creando variantes…</h3>
-    <p class="mu">Esto puede tardar unos segundos.</p>
+    <p class="mu">Esto puede tardar unos segundos. <span id="elapsed">0 s</span></p>
   </section>`;
 }
 

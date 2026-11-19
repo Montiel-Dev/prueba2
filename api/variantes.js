@@ -33,7 +33,8 @@ o sin resolver). Haz esto, en orden:
    copies el problema original ni repitas una variante). Deben resolverse con los mismos pasos.
 4. Para cada variante da la solución completa, paso a paso, en español sencillo (cada elemento
    de "pasos" es UN paso, breve y claro, como se lo explicarías a un estudiante), y el resultado
-   final ya simplificado.
+   final ya simplificado. Sé CONCISO para responder rápido: entre 3 y 5 pasos por variante, cada
+   paso de una sola línea (máximo ~25 palabras), sin introducciones ni repetir el enunciado.
 
 Responde ÚNICAMENTE con JSON válido (nada de texto antes, después, ni \`\`\`), con esta forma exacta.
 
@@ -83,6 +84,7 @@ module.exports = async (req, res) => {
 
     send(res, 200, {
       ok: true,
+      debug: parsed._meta || null, // tiempos/tokens; se ve en la consola del navegador
       transcripcion: String(parsed.transcripcion || ""),
       tema: String(parsed.tema || ""),
       nivel: Number(parsed.nivel) || 1,

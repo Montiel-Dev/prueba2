@@ -126,7 +126,7 @@ derivadas-dojo/
 ├─ js/camara.js         captura/compresión de la foto, llamada a /api/variantes y sus pantallas
 ├─ api/                 funciones de servidor (Vercel): crear/verificar pago y generar variantes
 ├─ lib/mp.js            helpers de Mercado Pago + candado de "solo cuentas de prueba"
-├─ lib/ai.js            helpers para hablar con la API de Anthropic (Escáner de problemas)
+├─ lib/ai.js            helpers para hablar con la API de Gemini (Escáner de problemas)
 ├─ vercel.json          configuración de publicación
 └─ favicon.svg
 ```
@@ -314,6 +314,17 @@ abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`)
 Si en algún momento quieres volver a usar Claude (Anthropic) en vez de Gemini —por ejemplo porque
 ya tienes cuenta ahí, o porque quieres mejor calidad en el reconocimiento de letra manuscrita— el
 único archivo que hay que tocar es `lib/ai.js`: ahí vive toda la llamada a la IA.
+
+### Velocidad del Escáner (versión optimizada)
+
+Si una foto tardaba minutos, la causa más probable era el "thinking" interno del modelo. Ahora:
+
+- `lib/ai.js` lo apaga/minimiza por defecto (`GEMINI_THINKING=off`; usa `default` para volver al comportamiento anterior).
+- Hay timeout de 55 s (`GEMINI_TIMEOUT_MS`) y `vercel.json` da 60 s de `maxDuration` a `api/variantes.js`.
+- Reintenta una vez ante errores 500/503 de Google y, si el modelo rechaza la config de thinking, reintenta sin ella.
+- Mide todo: en **Vercel → Logs** aparece `[gemini] {...ms, promptTokens, outputTokens, thoughtsTokens}` y en la
+  consola del navegador (F12) `[escáner] total ... | servidor: ...`. Si `thoughtsTokens` sigue alto o `ms` sigue
+  siendo de minutos, el cuello de botella es la cuota gratis o el modelo, no el código.
 
 ### Archivos
 
