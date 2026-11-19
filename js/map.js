@@ -283,19 +283,33 @@ const MapScreen = {
     if(!this.branch) return;
 
     const cur = SUBJECTS[this.branch];
-    const n = cur.extras.length;
+    const ring = cur.extras.filter(e => e[2] !== "mid");      // los que van en el anillo exterior
+    const n = ring.length;
     const offs = n === 3 ? [-20, 0, 20] : [-14, 14];
     const bp = this._branchPos(cur.id);
     const colors = { a:"#7CF0C9", m:"#8AA4FF", b:"#5A627C" };
-    cur.extras.forEach((ex, i)=>{
-      const [id, lv] = ex;
-      const size = REL_LEVELS[lv].size;
-      const t = (cur.ang + offs[i]) * Math.PI / 180;
-      const x = this.CX + this.ORX*Math.cos(t);
-      const y = this.CY + this.ORY*Math.sin(t);
+    let ri = 0;
+    cur.extras.forEach((ex)=>{
+      const [id, lv, where] = ex;
+      let size, x, y;
+      if(where === "mid"){
+        // Sobre la línea Matemáticas → rama, centrada en el hueco entre ambas burbujas
+        const CR = 78, BR = 66;                                // radios: burbuja central y de rama
+        const dx = bp.x - this.CX, dy = bp.y - this.CY, len = Math.hypot(dx, dy);
+        const gap = len - CR - BR;
+        size = Math.min(88, Math.floor(gap - 24));
+        const d = CR + gap/2;
+        x = this.CX + dx/len*d;
+        y = this.CY + dy/len*d;
+      } else {
+        size = REL_LEVELS[lv].size;
+        const t = (cur.ang + offs[ri++]) * Math.PI / 180;
+        x = this.CX + this.ORX*Math.cos(t);
+        y = this.CY + this.ORY*Math.sin(t);
+      }
       const node = this._bubble(id, size, x, y, "m-extra");
       host.appendChild(node);
-      lines.appendChild(this._line(bp.x, bp.y, x, y, colors[lv], lv === "b"));
+      if(where !== "mid") lines.appendChild(this._line(bp.x, bp.y, x, y, colors[lv], lv === "b"));
       this.extraNodes[id] = { node, lv };
       this.extraPos[id] = { x, y, d:size };
     });
@@ -344,9 +358,17 @@ const MapScreen = {
 
   enter(id){
     const s = SUBJECTS[id];
-    if(!s.available){
+    // Aritmética: aún no tiene curso, pero sí ya tiene su constelación de temas (vista previa, sin lecciones/ejercicios)
+    if(id === "ari" && isUnlocked(id)){
+      this.el.classList.add("is-leaving");
+      setTimeout(()=> this.openCourse(id), 320);
+      return;
+    }
+    if(!isUnlocked(id) || !s.available){
       const n = (this.nodes[id] || (this.extraNodes[id] && this.extraNodes[id].node));
       if(n){ n.classList.remove("m-shake"); void n.offsetWidth; n.classList.add("m-shake"); }
+      const box = this.panel && this.panel.querySelector(".m-lock");
+      if(box){ box.classList.remove("m-shake"); void box.offsetWidth; box.classList.add("m-shake"); }
       return;
     }
     // La institución se elige al escoger la asignatura (una vez por asignatura; se recuerda)
@@ -358,8 +380,10 @@ const MapScreen = {
 
   // Aquí se conecta cada curso con su contenido
   openCourse(id){
+    if(!isUnlocked(id)) return;          // nunca abrir una materia bloqueada
     this.hide();
     if(id === "calc"){ Constellation.show(); }
+    else if(id === "ari"){ AriConstellation.show(); }
   },
 
   // ---------------- dibujo ----------------
@@ -374,12 +398,12 @@ const MapScreen = {
       const node = this.nodes[id];
       const rel = b && id !== b ? SUBJECTS[b].rel[id] : null;
       node.className = "m-bubble m-branch" + (rel ? " lv-" + rel : "") + (id === b ? " is-open" : "") +
-        (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "");
+        (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "") + (isUnlocked(id) ? "" : " is-locked");
       this._fill(node, id, f === id);
     });
     Object.keys(this.extraNodes).forEach(id=>{
       const { node, lv } = this.extraNodes[id];
-      node.className = "m-bubble m-extra lv-" + lv + (this._fresh ? " m-enter" : "") + (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "");
+      node.className = "m-bubble m-extra lv-" + lv + (this._fresh ? " m-enter" : "") + (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "") + (isUnlocked(id) ? "" : " is-locked");
       this._fill(node, id, f === id);
     });
     this._fresh = false;
@@ -395,13 +419,18 @@ const MapScreen = {
     this._applyView();
   },
 
+  LOCK_SVG:`<svg class="m-lockico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
+
   _fill(node, id, pressed){
     const pct = subjectPct(id);
     node.style.setProperty("--p", pct);
     const bh = this.el.classList.contains("is-bh");      // tras el colapso ya no se muestran porcentajes
     node.querySelector(".m-pct").textContent = bh ? "" : pct + "%";
     const btn = node.querySelector(".m-bubble-btn");
-    btn.setAttribute("aria-label", bh ? SUBJECTS[id].label : `${SUBJECTS[id].label}, ${pct}% completado`);
+    const locked = !isUnlocked(id);
+    btn.setAttribute("aria-label", bh ? SUBJECTS[id].label : `${SUBJECTS[id].label}, ${locked ? "bloqueada, " : ""}${pct}% completado`);
+    if(locked && !btn.querySelector(".m-lockico")) btn.insertAdjacentHTML("beforeend", this.LOCK_SVG);
+    if(!locked){ const li = btn.querySelector(".m-lockico"); if(li) li.remove(); }
     btn.setAttribute("aria-pressed", pressed ? "true" : "false");
   },
 
@@ -448,8 +477,11 @@ const MapScreen = {
     const reqs = s.requisites.length
       ? s.requisites.map(r=>{
           const name = r.id ? SUBJECTS[r.id].label : r.title;
-          const rp = r.id && !bh ? `<em>${subjectPct(r.id)}%</em>` : "";
-          return `<li><div><strong>${esc(name)}</strong><span>${esc(r.text)}</span></div>${rp}</li>`;
+          const hard = r.id && r.min;
+          const ok = hard && subjectPct(r.id) >= r.min;
+          const need = hard ? ` · requiere ${r.min}%` : "";
+          const rp = r.id && !bh ? `<em>${subjectPct(r.id)}%${hard ? (ok ? " ✓" : "") : ""}</em>` : "";
+          return `<li class="${hard ? (ok ? "req-ok" : "req-miss") : ""}"><div><strong>${esc(name)}</strong><span>${esc(r.text)}${need}</span></div>${rp}</li>`;
         }).join("")
       : `<li class="none"><div><strong>Sin requisitos</strong><span>Es un buen punto de partida.</span></div></li>`;
 
@@ -463,10 +495,22 @@ const MapScreen = {
       related = `<h3>Relación con ${esc(SUBJECTS[this.branch].label)}</h3><div class="m-chips"><span class="m-chip lv-${lv}"><i></i>${REL_LEVELS[lv].label}</span></div>`;
     }
 
-    const status = s.available
+    const miss = missingReqs(id);
+    const locked = miss.length > 0;
+    const status = locked ? `Bloqueada` : id === "ari"
+      ? `Constelación de temas · curso próximamente`
+      : s.available
       ? `Disponible · ${BLOCKS.length} bloques`
       : `Próximamente`;
-    const action = s.available
+    const lockBox = locked
+      ? `<div class="m-lock" role="note"><b>🔒 Aún no puedes entrar</b><ul>${miss.map(m =>
+          `<li>Completa <strong>${esc(m.label)}</strong> al ${m.min}% (llevas ${m.pct}%)</li>`).join("")}</ul></div>`
+      : "";
+    const action = locked
+      ? `<button type="button" class="m-btn" data-act="enter" aria-disabled="true">🔒 Bloqueada</button>`
+      : id === "ari"
+      ? `<button type="button" class="m-btn m-btn-primary" data-act="enter">Ver constelación de temas</button>`
+      : s.available
       ? `<button type="button" class="m-btn m-btn-primary" data-act="enter">Entrar al curso</button>`
       : `<button type="button" class="m-btn" data-act="enter" aria-disabled="true">Curso en preparación</button>`;
 
@@ -475,6 +519,7 @@ const MapScreen = {
       <div class="m-eyebrow">${esc(status)}</div>
       <h2>${esc(s.label)}</h2>
       <p class="m-desc">${esc(s.desc)}</p>
+      ${lockBox}
       ${bh ? "" : `<div class="m-prog">
         <div class="m-prog-top"><span>Tu avance</span><b>${pct}%</b></div>
         <div class="m-prog-bar"><div style="width:${pct}%"></div></div>

@@ -16,6 +16,8 @@
 }
 .on-const .c-screen{ display:flex; }
 .on-const .app{ display:none; }
+.on-const-ari .c-screen{ display:flex; }
+.on-const-ari .app{ display:none; }
 
 /* ---------- fondo ---------- */
 .c-bg{
@@ -132,6 +134,13 @@
 }
 .c-go:hover{ filter:brightness(1.08); transform:translateY(-1px); }
 .c-go:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+
+/* ---------- constelación de TEMAS (solo mapa, sin lecciones aún) ---------- */
+.ac-panel{ display:block; }
+.ac-panel h2{ margin:0 0 10px; }
+.ac-list{ margin:0 0 12px; padding-left:20px; color:var(--c-text); font-size:14px; line-height:1.55; }
+.ac-list li{ margin-bottom:5px; }
+.ac-soon{ margin:0; font-size:13px; color:var(--c-dim); }
 
 /* ---------- pantallas pequeñas ---------- */
 @media (max-width:720px){

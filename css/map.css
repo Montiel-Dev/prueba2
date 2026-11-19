@@ -407,3 +407,15 @@
 .m-sun .corona{ opacity:var(--cor,.5); }
 @keyframes m-halo{ 0%,100%{ transform:scale(.96); } 50%{ transform:scale(1.04); } }
 @media (prefers-reduced-motion:reduce){ .m-sun .halo{ animation:none; } }
+
+
+/* ---------- materias bloqueadas por requisitos ---------- */
+.m-bubble.is-locked .m-bubble-btn{ filter:grayscale(.85) brightness(.6); cursor:not-allowed; }
+.m-bubble.is-locked:not(.is-focus):not(.is-dim) .m-bubble-btn:hover{ filter:grayscale(.85) brightness(.75); }
+.m-lockico{ position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#fff; opacity:.95; filter:drop-shadow(0 1px 4px rgba(0,0,0,.7)); pointer-events:none; }
+.m-lock{ margin:12px 0 4px; padding:12px 14px; border-radius:12px; border:1px dashed #F5B455; background:rgba(245,180,85,.09); font-size:14px; }
+.m-lock b{ display:block; margin-bottom:6px; color:#F5B455; }
+.m-lock ul{ margin:0; padding-left:18px; }
+.m-lock li{ margin:3px 0; }
+.m-reqs li.req-miss em{ color:#F5B455; }
+.m-reqs li.req-ok em{ color:var(--m-mint); }

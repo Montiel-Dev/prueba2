@@ -373,3 +373,9 @@ La interfaz nueva reemplaza a la anterior (mapa de materias simple + pantalla de
 - `js/map.js` + `css/map.css`: nuevo mapa de inicio (orbes de Desafío y racha, inicio de sesión local, "Ver colapso").
 - `js/ui.js`, `js/main.js`, `index.html`: barra del curso (← Constelación, Repasar errores, Inicio, tema) y vista de bloque con `Constellation.mountSky`.
 - `js/plans.js`, `js/subjects.js`: la institución (plan de estudios) se pregunta al entrar a cada asignatura, y el % de Matemáticas promedia todas las burbujas.
+
+### Añadido después: temas de Aritmética y requisitos bloqueantes
+
+- `js/ari-constellation.js`: constelación de **temas** de Aritmética (solo el mapa de temas, sin lecciones ni examen todavía; se edita en `ARI_TOPICS`).
+- `js/subjects.js`: los requisitos con `min` son **bloqueantes** (`missingReqs()` / `isUnlocked()`): una materia no se abre hasta que su requisito alcance ese % (p. ej. Cálculo integral exige Cálculo diferencial al 100 %). Aritmética queda sobre la línea Matemáticas–Álgebra.
+- `js/map.js`, `css/map.css`, `css/constellation.css`: ajustes del mapa para lo anterior.
