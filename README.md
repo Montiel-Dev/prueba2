@@ -1,3 +1,16 @@
+# Versión fusionada (v6 + Constelación)
+
+Esta versión junta dos proyectos que venían de la misma base:
+- **prueba2 (v6)**: IA multi-proveedor del Escáner (Groq/Gemini/Mistral/OpenRouter/Anthropic), pase Pro firmado,
+  cabeceras de seguridad (CSP), datos del recibo escapados, matemáticas bonitas en el Escáner, pruebas (`node --test`).
+- **constelación**: pantalla principal con burbujas/nebulosas de racha, "Mi constelación" por bloque (estrellas = lecciones,
+  práctica y examen), barra del curso, inicio de sesión local, y selección de institución **por asignatura**.
+
+Todo el backend (`api/`, `lib/`, `tests/`, `vercel.json`) viene de prueba2; todo el frontend visual del mapa/constelación viene
+de constelación. Las variables de entorno son las de la tabla de v6 (ver `.env.example`).
+
+---
+
 # v6 — qué cambió y cómo publicarla
 
 **Variables en Vercel → Settings → Environment Variables (después, Redeploy):**

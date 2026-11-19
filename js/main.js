@@ -5,6 +5,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
   MapScreen.init();
 
   document.getElementById("btn-map").addEventListener("click", ()=> MapScreen.show());
+  document.getElementById("btn-const").addEventListener("click", ()=> Constellation.show());
+  document.getElementById("cb-const").addEventListener("click", ()=> Constellation.show());
+  document.getElementById("cb-review").addEventListener("click", ()=> UI.startSession("review", null));
+  document.getElementById("cb-home").addEventListener("click", ()=> UI.showHome());
 
   document.querySelector(".brand").addEventListener("click", (e)=>{
     if(e.target.closest("#btn-theme")) return;
@@ -20,8 +24,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // La app abre en el mapa de materias
   MapScreen.show();
 
-  // Primera vez: pregunta la institución (plan de estudios) encima del mapa
-  if(!Plans.sel) Plans.openWizard(()=>{ UI.renderSidebar(); UI.showHome(); });
+  // La institución (plan de estudios) se pregunta al entrar a cada asignatura (MapScreen.enter)
 
   // Al volver del checkout de Mercado Pago (modo "mercadopago"): sale del mapa y muestra el resultado
   Pay.handleReturn().then(r=>{

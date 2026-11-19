@@ -37,8 +37,11 @@
   background-position:0 0, center, center, center, center;
 }
 .m-stars{ position:absolute; inset:0; pointer-events:none; }
-.m-stars i{ position:absolute; border-radius:50%; background:#fff; }
-.m-stars i.big{ box-shadow:0 0 10px 2px rgba(138,164,255,0.7); }
+.m-stars i{ position:absolute; border-radius:50%; background:#fff;
+  opacity:calc(var(--o,.5) + var(--g,0) * .5); transform:scale(calc(1 + var(--g,0) * .7));
+  box-shadow:0 0 calc(var(--g,0) * 12px) calc(var(--g,0) * 2px) rgba(190,210,255,.9);
+  transition:opacity .25s ease, transform .25s ease, box-shadow .25s ease; }
+.m-stars i.big{ box-shadow:0 0 calc(10px + var(--g,0) * 14px) calc(2px + var(--g,0) * 3px) rgba(138,164,255,.75); }
 .m-stars i.twinkle{ animation:m-twinkle 4s ease-in-out infinite; }
 @keyframes m-twinkle{ 0%,100%{opacity:.25} 50%{opacity:.9} }
 
@@ -225,3 +228,182 @@
   border:1px solid rgba(236,237,243,.28); border-radius:99px; padding:7px 16px; background:rgba(12,14,21,.55); }
 .m-arcade:hover{ border-color:var(--m-mint); color:var(--m-mint); }
 @media(max-width:640px){ .m-arcade{ padding:6px 12px; font-size:13px; } .m-name{ display:none; } }
+
+/* ---------- portada: la burbuja central en grande ---------- */
+.m-world.m-slow{ transition-duration:1.2s; }
+.m-orbit{ transition:opacity .6s ease; }
+.m-screen.is-intro .m-bubble, .m-screen.is-intro .m-lines, .m-screen.is-intro .m-orbit{ opacity:0 !important; pointer-events:none; }
+.m-screen.is-intro .m-center{ cursor:pointer; }
+.m-screen.is-intro .m-legend{ opacity:0; }
+.m-start{ position:absolute; left:0; right:0; bottom:12vh; z-index:5; margin:0; text-align:center; font-size:16px; font-weight:600;
+  color:var(--m-mint); letter-spacing:.04em; pointer-events:none; opacity:0; transition:opacity .5s ease; }
+.m-screen.is-intro .m-start{ opacity:1; animation:m-breathe 2.4s ease-in-out infinite; }
+@keyframes m-breathe{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+@media (prefers-reduced-motion:reduce){ .m-screen.is-intro .m-start{ animation:none; } .m-stars i{ transition:none; transform:none; } }
+
+/* ---------- Sol-faro (burbuja central) ---------- */
+.m-sun{ position:absolute; left:380px; top:140px; width:520px; height:520px; pointer-events:none; transition:opacity .5s ease; }
+.has-focus .m-sun{ opacity:.22; }
+.m-center{ background:none !important; color:var(--tc,#0C0E15); }
+.m-center::before{ display:none; }
+.m-center-pct{ color:inherit; opacity:.8; }
+.m-sun .ray{ fill:var(--gl); opacity:0; transition:opacity .8s ease; }
+.m-sun .ray.on{ opacity:.3; }
+.m-sun .tick{ stroke:#fff; stroke-opacity:.18; stroke-width:2; stroke-linecap:round; transition:opacity .8s ease; }
+.m-sun .tick.off{ opacity:0; }
+.m-sun .orb{ fill:none; stroke:var(--gl); stroke-opacity:var(--orb,.2); stroke-width:1.2; }
+.m-sun .bead{ fill:var(--gl); opacity:.9; }
+.m-sun .sp{ opacity:var(--sp,0); }
+.m-sun .beam{ opacity:var(--beam,0); }
+.m-sun .spin{ transform-origin:260px 260px; }
+.m-sun .spin.a{ animation:m-spin 70s linear infinite; }
+.m-sun .spin.b{ animation:m-spin 95s linear infinite reverse; }
+@keyframes m-spin{ to{ transform:rotate(360deg); } }
+.m-sun-star{ transform-origin:260px 260px; transition:opacity .6s ease; }
+
+/* ---------- agujero negro ---------- */
+.m-hole{ opacity:0; transform-origin:260px 260px; }
+.m-hole .disk.flow{ stroke-dasharray:46 20; animation:m-flow 5s linear infinite; }
+.m-hole .disk.flow2{ stroke-dasharray:30 26; animation:m-flow 3.4s linear infinite; }
+@keyframes m-flow{ to{ stroke-dashoffset:-132; } }
+.is-bh .m-hole{ opacity:1; }
+.is-bh .m-sun-star{ opacity:0; }
+.is-bh .m-center-sym{ display:none; }
+.is-bh .m-center-name, .is-bh .m-center-pct{ color:#fff; transform:translateY(98px); }
+.m-flash, .m-shock{ transform-origin:260px 260px; opacity:0; }
+.bh-collapse .m-sun-star{ animation:m-collapse 3.2s cubic-bezier(.55,0,.9,.35) both; }
+.bh-collapse .m-flash{ animation:m-flash 1.8s ease-out 2.9s both; }
+.bh-collapse .m-shock{ animation:m-shock 2.2s ease-out 3s both; }
+.bh-collapse .m-hole{ animation:m-holein 1.6s ease 3.1s both; }
+@keyframes m-collapse{ 0%{ transform:scale(1); } 14%{ transform:scale(1.07); } 100%{ transform:scale(.04); } }
+@keyframes m-flash{ 0%{ opacity:0; transform:scale(.2); } 18%{ opacity:.95; } 100%{ opacity:0; transform:scale(5.5); } }
+@keyframes m-shock{ 0%{ opacity:.9; transform:scale(.3); } 100%{ opacity:0; transform:scale(7); } }
+@keyframes m-holein{ from{ opacity:0; transform:scale(.4); } to{ opacity:1; transform:none; } }
+.bh-event .m-lines{ opacity:0 !important; }
+.bh-event .m-bubble{ pointer-events:none; }
+.bh-event .m-hint, .bh-event .m-legend{ opacity:0; }
+@media (prefers-reduced-motion:reduce){ .m-sun .spin, .m-hole .disk{ animation:none; } }
+
+/* ---------- leyenda dentro del recuadro, botón de colapsar, sin porcentajes tras el colapso ---------- */
+.m-panel-legend{ display:flex; flex-wrap:wrap; gap:8px 16px; font-size:13px; color:#C9CEDE; }
+.m-panel-legend span{ display:inline-flex; align-items:center; gap:8px; }
+.m-panel-legend .dot{ width:14px; height:14px; border-radius:50%; background:var(--b); border:1px solid rgba(255,255,255,.18); box-sizing:border-box; }
+.m-panel-legend .dot.ring{ background:none; border:3px solid #fff; border-right-color:rgba(255,255,255,.18); border-bottom-color:rgba(255,255,255,.18); }
+.m-collapse{ position:absolute; left:50%; bottom:9vh; transform:translateX(-50%); z-index:6; min-height:48px; padding:0 28px; border-radius:999px;
+  border:1px solid var(--m-mint); background:rgba(12,14,21,.7); color:var(--m-mint); font:800 16px var(--m-font); cursor:pointer;
+  animation:m-breathe 2.4s ease-in-out infinite; }
+.m-collapse[hidden]{ display:none; }
+.m-collapse:hover{ background:var(--m-mint); color:#0C0E15; }
+.m-collapse:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+.m-screen.is-bh .m-bubble{ background:rgba(255,255,255,.16); }
+.m-screen.is-bh .m-bubble .m-pct{ display:none; }
+@media (prefers-reduced-motion:reduce){ .m-collapse{ animation:none; } }
+
+/* ---------- inicio de sesión ---------- */
+.m-login{
+  position:relative; width:40px; height:40px; padding:0; border-radius:50%; cursor:pointer;
+  display:grid; place-items:center; color:var(--m-text); background:rgba(12,14,21,.55);
+  border:1px solid rgba(236,237,243,.28); font:800 15px var(--m-font);
+}
+.m-login:hover{ border-color:var(--m-mint); color:var(--m-mint); }
+.m-login:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+.m-login .m-login-ini{ display:none; }
+.m-login.is-in{ background:var(--m-mint); color:#0C0E15; border-color:var(--m-mint); }
+.m-login.is-in svg{ display:none; }
+.m-login.is-in .m-login-ini{ display:block; }
+
+.m-login-dlg{
+  width:min(380px, calc(100vw - 32px)); padding:26px; border-radius:22px; color:var(--m-text);
+  background:#101422; border:1px solid rgba(255,255,255,.14); font-family:var(--m-font);
+}
+.m-login-dlg::backdrop{ background:rgba(5,6,10,.7); }
+.m-login-dlg h2{ margin:0 0 6px; font:700 22px var(--m-font); }
+.m-login-note{ margin:0 0 16px; font-size:13px; color:var(--m-dim); }
+.m-login-dlg label{ display:block; margin-bottom:12px; font-size:13px; color:var(--m-dim); }
+.m-login-dlg input{
+  display:block; width:100%; box-sizing:border-box; margin-top:5px; min-height:44px; padding:0 14px;
+  border-radius:12px; border:1px solid rgba(255,255,255,.22); background:#0C0E15; color:#fff; font:600 15px var(--m-font);
+}
+.m-login-dlg input:focus-visible{ outline:3px solid var(--m-mint); outline-offset:1px; }
+.m-login-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+
+/* ---------- burbujas aparte: Desafío (izquierda) y racha (derecha) ---------- */
+.m-orb{
+  position:absolute; bottom:32px; z-index:5; box-sizing:border-box;
+  width:128px; height:128px; border-radius:50%; border:6px solid rgba(255,255,255,.18); background-clip:padding-box;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  text-align:center; text-decoration:none; font-family:var(--m-font); line-height:1.15;
+  transition:transform .3s ease, opacity .4s ease, box-shadow .3s ease;
+}
+.m-orb-name{ font-size:16px; font-weight:800; }
+.m-orb-sub{ font-size:12px; font-weight:700; opacity:.85; }
+.m-orb-num{ font-size:34px; font-weight:800; line-height:1; }
+
+.m-challenge{
+  left:36px; color:#fff;
+  background:linear-gradient(140deg,#FF3355 0%,#C4207E 48%,#7A3BF2 100%);
+  box-shadow:0 0 34px rgba(196,32,126,.45), 0 0 60px rgba(122,59,242,.25);
+}
+.m-challenge:hover{ transform:scale(1.06); box-shadow:0 0 44px rgba(255,51,85,.55), 0 0 72px rgba(122,59,242,.4); }
+.m-challenge:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+
+.m-streak{
+  right:36px; color:#2A1300;
+  background:linear-gradient(160deg,#FFD25A 0%,#FF9A2E 60%,#FF6A1A 100%);
+  box-shadow:0 0 34px rgba(255,154,46,.4);
+}
+.m-streak svg{ margin-bottom:-2px; }
+
+.has-focus .m-orb, .bh-event .m-orb{ opacity:0; pointer-events:none; }
+@media (max-width:820px){
+  .m-orb{ width:96px; height:96px; border-width:5px; bottom:20px; }
+  .m-challenge{ left:16px; } .m-streak{ right:16px; }
+  .m-orb-name{ font-size:13px; } .m-orb-sub{ font-size:10px; } .m-orb-num{ font-size:26px; }
+  .m-orb svg{ width:22px; height:22px; }
+}
+@media (prefers-reduced-motion:reduce){ .m-orb{ transition:none; } }
+
+/* ---------- racha: nebulosa flotante (el dibujo cambia con los días, ver js/nebulae.js) ---------- */
+.m-streak{
+  width:200px; height:200px; right:28px; bottom:150px; border:0; border-radius:0; background:none; box-shadow:none;
+  color:#fff; isolation:isolate; animation:m-float 7s ease-in-out infinite;
+}
+.m-neb{ position:absolute; inset:0; z-index:-1; pointer-events:none; animation:m-neb-breathe 6s ease-in-out infinite; }
+.m-neb svg{ display:block; overflow:visible; }
+/* un velo oscuro suave detrás del número para que siempre se lea */
+.m-streak::before{ content:""; position:absolute; left:50%; top:50%; width:104px; height:104px; margin:-52px 0 0 -52px; border-radius:50%;
+  background:radial-gradient(circle, rgba(8,6,18,.62) 0%, rgba(8,6,18,.35) 55%, transparent 72%); z-index:-1; }
+.m-streak svg.m-flame{ color:#FFE3A0; filter:drop-shadow(0 0 8px rgba(255,170,60,.9)); margin:0 0 -2px; }
+.m-streak .m-orb-num{ text-shadow:0 0 14px rgba(255,140,40,.9), 0 2px 10px rgba(30,0,40,.8); font-size:38px; }
+.m-streak .m-orb-sub{ opacity:1; text-shadow:0 1px 8px rgba(8,6,18,.95); }
+.m-neb-name{ position:absolute; left:0; right:0; bottom:2px; text-align:center; font-size:11px; font-weight:700; letter-spacing:.04em;
+  color:rgba(236,237,243,.8); text-shadow:0 1px 6px #000; }
+@keyframes m-float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-14px); } }
+@keyframes m-neb-breathe{ 0%,100%{ opacity:.88; transform:scale(1); } 50%{ opacity:1; transform:scale(1.04); } }
+@media (max-width:820px){
+  .m-streak{ width:150px; height:150px; right:6px; bottom:130px; border:0; }
+  .m-streak::before{ width:80px; height:80px; margin:-40px 0 0 -40px; }
+  .m-streak .m-orb-num{ font-size:28px; }
+  .m-neb-name{ font-size:10px; }
+}
+@media (prefers-reduced-motion:reduce){ .m-streak, .m-neb{ animation:none; } }
+
+/* ---------- burbuja de Geometría: octaedro de malla y figuras flotantes (js/geo-art.js) ---------- */
+.m-bubble-btn[data-id="geo"]{ justify-content:flex-end; padding-bottom:11px; background:var(--b,#0D1840); }
+.m-bubble-btn[data-id="geo"] .m-label, .m-bubble-btn[data-id="geo"] .m-pct{ position:relative; text-shadow:0 1px 6px rgba(5,8,24,.9); }
+.m-geo-core{ position:absolute; left:50%; top:3px; width:84px; height:84px; margin-left:-42px; pointer-events:none; overflow:visible; }
+.m-geo-orbit{ position:absolute; left:-44px; top:-44px; width:220px; height:220px; overflow:visible; pointer-events:none; }
+.m-geo-orbit .fb{ animation:m-geo-bob 6.5s ease-in-out infinite; }
+@keyframes m-geo-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+@media (prefers-reduced-motion:reduce){ .m-geo-orbit .fb{ animation:none; } }
+
+/* ---------- burbuja de Álgebra: fichas de álgebra (js/alg-art.js) ---------- */
+.m-bubble-btn[data-id="alg"]{ justify-content:flex-end; padding-bottom:8px; background:#1D1646; }
+.m-bubble-btn[data-id="alg"] .m-label, .m-bubble-btn[data-id="alg"] .m-pct{ position:relative; text-shadow:0 1px 6px rgba(12,8,40,.9); }
+.m-alg-core{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+/* ---------- brillo del Sol: halo amplio + corona, del color de la estrella (js/sun.js) ---------- */
+.m-sun .halo{ opacity:var(--ha,.4); transform-origin:260px 260px; animation:m-halo 6s ease-in-out infinite; }
+.m-sun .corona{ opacity:var(--cor,.5); }
+@keyframes m-halo{ 0%,100%{ transform:scale(.96); } 50%{ transform:scale(1.04); } }
+@media (prefers-reduced-motion:reduce){ .m-sun .halo{ animation:none; } }

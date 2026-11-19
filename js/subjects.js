@@ -129,9 +129,7 @@ function subjectPct(id){
   return 0;
 }
 
-// Promedio de las materias que ya tienen curso
+// % de Matemáticas (burbuja central) = promedio del % de cada burbuja que la orbita
 function totalPct(){
-  const live = Object.values(SUBJECTS).filter(s => s.available);
-  if(!live.length) return 0;
-  return Math.round(live.reduce((n,s)=> n + subjectPct(s.id), 0) / live.length);
+  return Math.round(BRANCH_IDS.reduce((n,id)=> n + subjectPct(id), 0) / BRANCH_IDS.length);
 }

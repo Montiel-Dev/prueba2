@@ -45,6 +45,11 @@ const UI = {
     document.getElementById("review-count").textContent = reviewCount;
     reviewBtn.disabled = reviewCount === 0;
     reviewBtn.onclick = ()=> this.startSession("review", null);
+    const cb = document.getElementById("cb-count"), cr = document.getElementById("cb-review");
+    if(cb) cb.textContent = reviewCount;
+    if(cr) cr.disabled = reviewCount === 0;
+    const ct = document.getElementById("cb-title");
+    if(ct){ const b = BLOCKS.find(x => x.id === this._activeBlockId); ct.textContent = b ? b.title : "Cálculo diferencial"; }
   },
 
   _blockBtn(block){
@@ -215,49 +220,28 @@ const UI = {
       <div class="eyebrow">Bloque</div>
       <h1>${block.title}</h1>
       <p class="lead">${block.summary}</p>
-
-      <div class="home-grid" style="margin:20px 0 28px;">
+      <div class="b-wrap" id="b-sky"></div>
+      <div class="home-grid" style="margin:0 0 28px;">
         <div class="home-card"><h3>Lecciones (${lStats.done}/${lStats.total})</h3><div class="big">${sp.lessons}%</div></div>
         <div class="home-card"><h3>Práctica (${pStats.correct}/${pStats.total})</h3><div class="big">${sp.practice}%</div></div>
         <div class="home-card"><h3>Mini-examen</h3><div class="big">${sp.exam}%</div></div>
         <div class="home-card total"><h3>Total del bloque</h3><div class="big">${bp}%</div></div>
       </div>
-
-      <div class="lesson-card">
-        <h2>1. Lecciones <span class="sec-pct">${sp.lessons}%</span></h2>
-        <p class="lead" style="margin-bottom:14px;">Repasa la teoría antes de practicar, o sáltatela si ya la dominas.</p>
-        <div class="action-row" id="lesson-links"></div>
-      </div>
-
-      <div class="lesson-card">
-        <h2>2. Práctica guiada <span class="sec-pct">${sp.practice}%</span></h2>
-        <p class="lead" style="margin-bottom:14px;">Ejercicios con pistas y explicación completa cuando te equivocas. Así se aprende.</p>
-        <div class="action-row">
-          <button class="btn btn-primary" id="btn-practice">Practicar (${pStats.total} ejercicios)</button>
-        </div>
-      </div>
-
-      <div class="lesson-card">
-        <h2>3. Mini-examen <span class="sec-pct">${sp.exam}%</span></h2>
-        <p class="lead" style="margin-bottom:14px;">Sin pistas, para medir si ya lo dominas tú solo. ${examBest ? `Mejor resultado: ${examBest.score}/${examBest.total}.` : "Aún no lo presentas."}</p>
-        <div class="action-row">
-          <button class="btn btn-amber" id="btn-exam">Presentar mini-examen (${block.exam.length} preguntas)</button>
-        </div>
-      </div>
+      <p class="pay-fine">Toca una estrella para abrir ese tema. Las lecciones traen teoría, ejemplos y animaciones; la práctica y el examen, los ejercicios.</p>
     `;
 
-    const lessonLinks = document.getElementById("lesson-links");
-    block.lessons.forEach((lesson, idx)=>{
-      const seen = Engine.state.blocks[blockId].lessonsSeen[idx];
-      const b = document.createElement("button");
-      b.className = "btn btn-ghost";
-      b.textContent = (seen ? "✓ " : "") + lesson.title;
-      b.addEventListener("click", ()=> this.showLesson(blockId, idx));
-      lessonLinks.appendChild(b);
-    });
-
-    document.getElementById("btn-practice").addEventListener("click", ()=> this.startSession("practice", blockId));
-    document.getElementById("btn-exam").addEventListener("click", ()=> this.startSession("exam", blockId));
+    const seenL = Engine.state.blocks[blockId].lessonsSeen;
+    const items = block.lessons.map((lesson, idx) => ({
+      label: lesson.title.replace(/\s*\(.*\)\s*$/, ""),
+      sub: seenL[idx] ? "Vista" : "Lección " + (idx+1),
+      on: !!seenL[idx], pct: seenL[idx] ? 100 : 0,
+      onClick: ()=> this.showLesson(blockId, idx)
+    }));
+    items.push({ label:"Práctica guiada", sub:`${sp.practice}% · ${pStats.total} ejercicios`, on: pStats.done > 0, pct: sp.practice,
+      onClick: ()=> this.startSession("practice", blockId) });
+    items.push({ label:"Mini-examen", sub: examBest ? `Mejor: ${examBest.score}/${examBest.total}` : "Sin presentar", on: !!examBest, pct: sp.exam,
+      onClick: ()=> this.startSession("exam", blockId) });
+    Constellation.mountSky(document.getElementById("b-sky"), items);
   },
 
   // ---------------- lesson ----------------
@@ -265,6 +249,7 @@ const UI = {
     document.body.classList.remove("in-session");
     const block = BLOCKS.find(b=>b.id===blockId);
     const lesson = block.lessons[idx];
+    this._activeBlockId = blockId;
     Engine.markLessonSeen(blockId, idx);
     this.renderSidebar();
 
@@ -281,6 +266,7 @@ const UI = {
             ${block.lessons.map((_,i)=>`<span class="lesson-dot${i===idx?' active':''}"></span>`).join("")}
           </div>
           <div class="action-row">
+            <button class="btn btn-ghost" id="btn-sky">✦ Temas del bloque</button>
             ${idx>0 ? `<button class="btn btn-ghost" id="btn-prev">Anterior</button>` : ""}
             <button class="btn btn-primary" id="btn-next">${isLast ? "Ir a practicar" : "Siguiente"}</button>
           </div>
@@ -290,6 +276,7 @@ const UI = {
 
     const ab = document.getElementById("btn-anim");
     if(ab) ab.addEventListener("click", ()=>{ ab.style.display = "none"; Anim.mount(document.getElementById("anim-host"), ANIM_LESSONS[lesson.title]); });
+    document.getElementById("btn-sky").addEventListener("click", ()=> this.showBlockOverview(blockId));
     if(idx>0) document.getElementById("btn-prev").addEventListener("click", ()=> this.showLesson(blockId, idx-1));
     document.getElementById("btn-next").addEventListener("click", ()=>{
       if(isLast) this.startSession("practice", blockId);

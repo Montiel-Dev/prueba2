@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=Literata:ital@0;1&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/map.css">
+<link rel="stylesheet" href="css/constellation.css">
 </head>
 <body>
 <div id="app" class="app">
@@ -24,13 +25,20 @@
       <span class="brand-mark">d/dx</span>
       <span class="brand-name">Derivadas Dojo</span>
       <span class="pro-badge" id="pro-badge" hidden>PRO</span>
-      <button class="theme-btn" id="btn-theme" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">◐</button>
     </div>
     <button class="map-btn" id="btn-map" type="button">← Mapa de materias</button>
+    <button class="map-btn" id="btn-const" type="button">✦ Mi constelación</button>
     <div class="plan-line"><span id="plan-chip"></span></div>
     <nav class="block-nav" id="block-nav"></nav>
     <button class="review-btn" id="btn-review">Repasar errores (<span id="review-count">0</span>)</button>
   </aside>
+  <header class="course-bar" id="course-bar">
+    <button type="button" class="cb-back" id="cb-const">← Constelación</button>
+    <span class="cb-title" id="cb-title"></span>
+    <button type="button" id="cb-review">Repasar errores (<span id="cb-count">0</span>)</button>
+    <button type="button" id="cb-home" title="Inicio: Arcade, escáner y plan">Inicio</button>
+    <button class="theme-btn" id="btn-theme" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">◐</button>
+  </header>
   <main class="main" id="main"></main>
 </div>
 <div id="onboard" class="onboard" hidden></div>
@@ -44,7 +52,12 @@
 <script src="js/plans.js"></script>
 <script src="js/pay.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/nebulae.js"></script>
+<script src="js/geo-art.js"></script>
+<script src="js/alg-art.js"></script>
 <script src="js/map.js"></script>
+<script src="js/sun.js"></script>
+<script src="js/constellation.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

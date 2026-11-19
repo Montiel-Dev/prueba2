@@ -110,15 +110,18 @@ const INSTITUTIONS = [
 const Plans = {
   KEY: "dojo-plan-v1",
   sel: null,           // { inst, answers, plan, verified }
+  subject: "calc",     // asignatura a la que pertenece la selección (se pregunta al entrar a cada una)
 
+  key(){ return this.subject === "calc" ? this.KEY : this.KEY + ":" + this.subject; },
   load(){
+    this.sel = null;
     try{
-      const s = JSON.parse(localStorage.getItem(this.KEY));
+      const s = JSON.parse(localStorage.getItem(this.key()));
       if(s && PLANS[s.plan]) this.sel = s;
     }catch(e){}
     return this.sel;
   },
-  save(){ try{ localStorage.setItem(this.KEY, JSON.stringify(this.sel)); }catch(e){} },
+  save(){ try{ localStorage.setItem(this.key(), JSON.stringify(this.sel)); }catch(e){} },
 
   plan(){ return this.sel ? PLANS[this.sel.plan] : PLANS.libre; },
   units(){ return this.plan().units; },                       // null = recorrido libre
