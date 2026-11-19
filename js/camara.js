@@ -29,7 +29,9 @@ const State = {
   detail: "",
   canRetry: true,
   openIdx: new Set(),  // índices de variantes con la solución abierta
-  busy: false          // evita doble clic / dos peticiones a la vez
+  busy: false,         // evita doble clic / dos peticiones a la vez
+  frames: {},          // animaciones ya generadas, por índice de variante
+  animOpen: new Set()  // variantes con la animación abierta
 };
 
 // Fórmulas bonitas (fracciones apiladas, raíces, exponentes). Si algo falla, texto plano.
@@ -50,6 +52,17 @@ function normMath(t){
     .replace(/(sqrt|raíz|raiz)\s*\(/gi, "√(")
     .replace(/\*/g, "·").replace(/÷/g, "/")
     .replace(/\bsin\b/g, "sen");
+}
+/* Cuadros de animación: normaliza cada pieza sin tocar los prefijos *, ! ni "id:" */
+function normPiece(raw){
+  const m1 = /^([*!]*)(?:([a-z]{1,3}\d?):)?([*!]*)(.*)$/.exec(raw);
+  return m1[1] + (m1[2] ? m1[2] + ":" : "") + m1[3] + normMath(m1[4]);
+}
+function normFrames(frames){
+  return frames.map(f => ({
+    t: normMath(f.t || ""), n: normMath(f.n || ""),
+    e: String(f.e || "").trim().split(/\s+/).map(normPiece).join(" ")
+  }));
 }
 function fmt(t){
   try{ return `<span class="math">${colorMath(normMath(t))}</span>`; }
@@ -223,7 +236,7 @@ async function generate(){
       return render();
     }
     State.data = d;
-    State.openIdx = new Set();
+    State.openIdx = new Set(); State.frames = {}; State.animOpen = new Set();
     State.step = "result";
   }catch(e){
     State.step = "preview";
@@ -237,7 +250,7 @@ async function generate(){
 }
 
 function reset(){
-  State.step = "intro"; State.imageDataUrl = null; State.texto = ""; State.readWarn = ""; State.detail = ""; State.data = null; State.errorMsg = "";
+  State.step = "intro"; State.imageDataUrl = null; State.texto = ""; State.readWarn = ""; State.detail = ""; State.data = null; State.errorMsg = ""; State.frames = {}; State.animOpen = new Set();
   render();
 }
 
@@ -344,7 +357,11 @@ function screenResult(){
       <section class="card var-card">
         <div class="eyebrow">Variante ${i + 1}</div>
         <p class="var-enun">${fmt(v.enunciado)}</p>
-        <button type="button" class="lnk var-toggle" data-i="${i}">${State.openIdx.has(i) ? "Ocultar solución" : "Ver solución paso a paso"}</button>
+        <div class="var-actions">
+          <button type="button" class="btn sm var-anim" data-i="${i}">${State.animOpen.has(i) ? "Ocultar animación" : "🎬 Ver animación"}</button>
+          <button type="button" class="lnk var-toggle" data-i="${i}">${State.openIdx.has(i) ? "Ocultar solución" : "Ver solución paso a paso"}</button>
+        </div>
+        <div class="anim-slot" id="anim-${i}"></div>
         ${State.openIdx.has(i) ? `
           <ol class="var-steps">${v.pasos.map(p => `<li>${fmt(p)}</li>`).join("")}</ol>
           <div class="var-result">${fmt(v.resultado)}</div>
@@ -358,6 +375,34 @@ function screenResult(){
     </div>
     <input type="file" id="file-camera" accept="image/*" capture="environment" hidden>
   </section>`;
+}
+
+/* Animación de una variante: se pide a la IA solo al tocar el botón y se guarda. */
+async function toggleAnim(i, btn){
+  const host = document.getElementById("anim-" + i);
+  if(!host) return;
+  if(State.animOpen.has(i)){ State.animOpen.delete(i); if(host._anim) clearTimeout(host._anim); host.innerHTML = ""; btn.textContent = "🎬 Ver animación"; return; }
+  if(!State.frames[i]){
+    const v = State.data.variantes[i];
+    btn.disabled = true; btn.textContent = "Preparando animación…";
+    host.innerHTML = `<p class="mu" style="margin:6px 0">Creando la animación… <span id="anim-wait-${i}">0 s</span></p>`;
+    const t0 = Date.now(), tick = setInterval(() => { const w = document.getElementById("anim-wait-" + i); if(w) w.textContent = Math.round((Date.now() - t0) / 1000) + " s"; }, 500);
+    try{
+      const { ok, d } = await postJson("/api/animar", { enunciado: v.enunciado, pasos: v.pasos, resultado: v.resultado }, CLIENT_TIMEOUT_MS);
+      if(!(ok && d.ok && Array.isArray(d.frames) && d.frames.length)) throw new Error(d.error || "No se pudo crear la animación.");
+      State.frames[i] = normFrames(d.frames);
+    }catch(e){
+      clearInterval(tick);
+      btn.disabled = false; btn.textContent = "🎬 Reintentar animación";
+      host.innerHTML = `<div class="alert warn">${esc(e && e.name === "AbortError" ? "La animación tardó demasiado. Intenta de nuevo." : (e && e.message) || "No se pudo crear la animación.")} Mientras tanto puedes ver la solución paso a paso.</div>`;
+      return;
+    }
+    clearInterval(tick);
+  }
+  btn.disabled = false; btn.textContent = "Ocultar animación";
+  State.animOpen.add(i);
+  try{ Anim.mount(host, State.frames[i]); }
+  catch(e){ State.animOpen.delete(i); delete State.frames[i]; btn.textContent = "🎬 Ver animación"; host.innerHTML = `<div class="alert warn">No se pudo mostrar la animación.</div>`; }
 }
 
 /* ---------------- render + binds ---------------- */
@@ -404,6 +449,10 @@ function bind(){
 
   const resetBtn = document.getElementById("btn-reset");
   if(resetBtn) resetBtn.onclick = reset;
+
+  document.querySelectorAll(".var-anim").forEach(b => { b.onclick = () => toggleAnim(+b.dataset.i, b); });
+  // al re-dibujar (p. ej. abrir una solución) se vuelven a montar las animaciones abiertas
+  State.animOpen.forEach(i => { const h = document.getElementById("anim-" + i); if(h && State.frames[i]) Anim.mount(h, State.frames[i]); });
 
   document.querySelectorAll(".var-toggle").forEach(b => {
     b.onclick = () => {

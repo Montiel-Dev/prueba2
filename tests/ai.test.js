@@ -126,3 +126,22 @@ test("Sin ninguna key -> error 500 explicativo", async () => {
   const r = await call(leer, { image: TINY, mime: "image/jpeg" });
   assert.strictEqual(r.status, 500); assert(/proveedor/.test(r.body.error));
 });
+
+test("animar: devuelve cuadros válidos y rechaza respuestas incompletas", async () => {
+  const FR = { frames: [
+    { t: "Problema", e: "fn:f(x) = a:3x^2 + b:5", n: "inicio" },
+    { t: "1. Deriva", e: "fn:f'(x) = *a:6x + *b:0", n: "x^2 baja" },
+    { t: "2. Resultado", e: "fn:f'(x) = a:6x", n: "listo" }] };
+  setup(["GEMINI_API_KEY"], { AI_PROVIDERS: "gemini" });
+  global.fetch = async () => geminiOk(JSON.stringify(FR));
+  const animar = require("../api/animar");
+  const out = {}; const res = { setHeader(){}, end(b){ out.body = JSON.parse(b); } };
+  await animar({ method: "POST", headers: {}, body: { enunciado: "Deriva: f(x) = 3x^2 + 5", pasos: ["a"], resultado: "6x" } }, res);
+  assert.strictEqual(res.statusCode, 200); assert.strictEqual(out.body.frames.length, 3);
+  assert.strictEqual(out.body.frames[1].e, "fn:f'(x) = *a:6x + *b:0");
+
+  global.fetch = async () => geminiOk(JSON.stringify({ frames: [{ t: "x", e: "a:1" }] }));
+  const out2 = {}; const res2 = { setHeader(){}, end(b){ out2.body = JSON.parse(b); } };
+  await animar({ method: "POST", headers: {}, body: { enunciado: "Deriva: f(x) = x" } }, res2);
+  assert.notStrictEqual(res2.statusCode, 200); assert.strictEqual(out2.body.ok, false);
+});

@@ -30,6 +30,9 @@
     },
     "api/pro-check.js": {
       "maxDuration": 15
+    },
+    "api/animar.js": {
+      "maxDuration": 60
     }
   }
 }
