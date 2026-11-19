@@ -76,3 +76,11 @@ sup.tok-exp{ top:-.6em; }
 .anim-slot:empty{display:none}
 .var-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:4px}
 .btn.sm{padding:9px 16px;font-size:14.5px}
+
+/* animación más clara: datos (u, v, u', v') y explicación grande */
+.anim-data{ margin:12px 0 0; padding:10px 14px; border-left:3px solid var(--accent); background:var(--surface-3); border-radius:0 10px 10px 0; font-size:17px; overflow-x:auto; }
+.anim-data:empty{ display:none; }
+.anim-data b{ font:700 12px var(--font-ui,Inter,sans-serif); letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); margin-right:8px; }
+.anim-cap{ font-size:16.5px; line-height:1.65; min-height:56px; margin:14px 2px 12px; }
+.anim .a-t{ font-size:15px; }
+@media (max-width:640px){ .anim-data{ font-size:15.5px; } .anim-cap{ font-size:15.5px; } }

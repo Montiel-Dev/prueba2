@@ -174,6 +174,7 @@ const Anim = {
       <div class="anim-orig"></div>
       <div class="a-t"></div>
       <div class="a-stage" aria-live="polite"><div class="a-row"></div></div>
+      <div class="anim-data"></div>
       <div class="anim-cap"></div>
       <div class="anim-bar"><div></div></div>
       <div class="anim-ctl">
@@ -205,6 +206,7 @@ const Anim = {
       row.querySelectorAll(".a-tok").forEach(el => el.getAnimations && el.getAnimations().forEach(a => a.cancel()));
       const f = frames[k], toks = Anim.parseTok(f.e), old = rects();
       row.innerHTML = toks.map(t => `<span class="a-tok${t.hl ? " a-hl" : ""}${t.cancel ? " a-cancel" : ""}" data-id="${t.id}" data-text="${mathEsc(t.text)}">${m(t.text)}</span>`).join("");
+      fit();
       const fresh = rects(), D = 700, ease = "ease-in-out";
       if(!still){
         const used = {};
@@ -224,6 +226,7 @@ const Anim = {
       }
       q(".anim-orig").innerHTML = k > 0 ? `<span>Partimos de</span> ${m(Anim.plain(frames[0].e))}` : "";
       q(".a-t").innerHTML = rich(f.t);
+      q(".anim-data").innerHTML = f.d ? `<b>Datos:</b> <span class="math">${colorMath(f.d)}</span>` : "";
       q(".anim-cap").innerHTML = rich(f.n || "");
       q(".anim-bar div").style.width = ((k+1)/n*100) + "%";
       q(".anim-count").textContent = `Paso ${k+1} de ${n}`;
@@ -231,10 +234,22 @@ const Anim = {
       q('[data-a="next"]').disabled = k === n-1;
       setBtn();
     };
+    // Si la expresión no cabe en una línea, se achica la letra (hasta 15 px) en vez de partirla en pedazos
+    function fit(){
+      row.style.fontSize = ""; row.style.flexWrap = ""; row.style.columnGap = "";
+      let fs = parseFloat(getComputedStyle(row).fontSize) || 28;
+      const avail = stage.clientWidth - 32;
+      row.style.flexWrap = "nowrap";
+      row.style.columnGap = Math.round(fs * .45) + "px";
+      while(row.scrollWidth > avail + 1 && fs > 15){
+        fs -= 1; row.style.fontSize = fs + "px"; row.style.columnGap = Math.round(fs * .45) + "px";
+      }
+      if(row.scrollWidth > avail + 1) row.style.flexWrap = "wrap";
+    }
     // Copia fantasma de lo que se va: se mueve y se desvanece
     function ghost(ol, dx, dy, moves){
       const g = document.createElement("span");
-      g.className = "a-ghost"; g.innerHTML = ol.html;
+      g.className = "a-ghost"; g.innerHTML = ol.html; g.style.fontSize = row.style.fontSize;
       g.style.left = ol.x + "px"; g.style.top = ol.y + "px";
       stage.appendChild(g);
       const a = g.animate([{ opacity:1, transform:"none" }, { opacity:0, transform: moves ? `translate(${dx}px,${dy}px)` : "translateY(-10px)" }], { duration:700, easing:"ease-in-out", fill:"forwards" });

@@ -58,10 +58,23 @@ function normPiece(raw){
   const m1 = /^([*!]*)(?:([a-z]{1,3}\d?):)?([*!]*)(.*)$/.exec(raw);
   return m1[1] + (m1[2] ? m1[2] + ":" : "") + m1[3] + normMath(m1[4]);
 }
+/* Parte la expresión en piezas por espacios SOLO fuera de paréntesis: así una fracción o raíz que
+   la IA escribió con espacios por dentro sigue siendo UNA pieza y no se rompe. */
+function splitPieces(e){
+  const s = String(e || "").trim(), out = []; let cur = "", d = 0;
+  for(const ch of s){
+    if(ch === "(" || ch === "[") d++;
+    else if(ch === ")" || ch === "]") d = Math.max(0, d - 1);
+    if(/\s/.test(ch)){ if(d === 0){ if(cur){ out.push(cur); cur = ""; } } continue; }
+    cur += ch;
+  }
+  if(cur) out.push(cur);
+  return d === 0 ? out : s.split(/\s+/);          // paréntesis sin cerrar: respaldo simple
+}
 function normFrames(frames){
   return frames.map(f => ({
-    t: normMath(f.t || ""), n: normMath(f.n || ""),
-    e: String(f.e || "").trim().split(/\s+/).map(normPiece).join(" ")
+    t: normMath(f.t || ""), n: normMath(f.n || ""), d: normMath(f.d || ""),
+    e: splitPieces(f.e).map(normPiece).join(" ")
   }));
 }
 function fmt(t){
