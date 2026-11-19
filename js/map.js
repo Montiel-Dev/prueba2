@@ -22,6 +22,7 @@ const MapScreen = {
       <div class="m-brand"><span class="m-mark">d/dx</span><span class="m-name">Derivadas Dojo</span></div>
       <div class="m-hud">
         <span class="m-pro" id="m-pro" hidden>PRO</span>
+        <a class="m-arcade" id="m-camara" href="camara.html">📷 Escáner</a>
         <a class="m-arcade" id="m-arcade" href="arcade.html">♥ Arcade</a>
       </div>
     </header>

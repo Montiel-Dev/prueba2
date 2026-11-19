@@ -161,8 +161,8 @@ const UI = {
       </div>
       <!-- TODO (cuando quieras hacerlo Pro): agrega aquí la misma condición que usa
            el Arcade, p. ej. mostrar "Abrir cámara" solo si Pay.isPro() y si no, un
-           botón "🔒 Desbloquear con Pro" como en js/arcade-core.js (ver `guard()`
-           y arcade.html). El backend (api/variantes.js) también deja lista una nota
+           botón de "Desbloquear con Pro" como en js/arcade-core.js (función guard)
+           y arcade.html. El backend (api/variantes.js) también deja lista una nota
            de dónde validar el pago antes de llamar a la IA. -->
       ${Pay.cardHTML()}
       <div class="lesson-card">
