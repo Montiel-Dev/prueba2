@@ -1,25 +1,24 @@
 /* GET /api/diagnostico-ia
-   Prueba rápida (tarda como máximo ~25 s) para saber DÓNDE está la lentitud:
-   manda un mensaje diminuto (solo texto y con una imagen de 1 píxel) al modelo
-   principal y al de respaldo, y devuelve cuánto tardó cada uno.
+   Prueba rápida: manda un mensaje diminuto (texto y con una imagen de 1 px) a CADA
+   proveedor configurado, en paralelo, y dice cuánto tardó y si funcionó.
    Ábrelo en el navegador: https://TU-SITIO.vercel.app/api/diagnostico-ia
-   Es seguro de dejar (gasta casi nada), pero puedes borrar este archivo
-   cuando el escáner ya funcione bien. */
+   Si "proveedores" sale vacío, no hay ninguna API key configurada. */
 
-const { send, MODEL, FALLBACK_MODEL, ping } = require("../lib/ai");
+const { send, available, ping, ORDER } = require("../lib/ai");
 
 module.exports = async (req, res) => {
   try{
-    const models = [MODEL];
-    if(FALLBACK_MODEL && FALLBACK_MODEL !== MODEL) models.push(FALLBACK_MODEL);
+    const list = available({ vision: true });
     const jobs = [];
-    for(const m of models){ jobs.push(ping(m, false), ping(m, true)); }
-    const results = await Promise.all(jobs);
+    for(const p of list){ jobs.push(ping(p, false), ping(p, true)); }
+    const resultados = await Promise.all(jobs);
     send(res, 200, {
-      nota: "ms = milisegundos. Normal: menos de 5000 (5 s) con texto y menos de 8000 con imagen.",
-      resultados: results
+      nota: "ms = milisegundos. Normal: < 3000 con texto y < 6000 con imagen. Un proveedor con ok:false o muy lento se salta solo en el Escáner.",
+      orden: ORDER,
+      proveedores: list.map(p => p.name),
+      resultados
     });
   }catch(e){
-    send(res, e.status || 500, { ok:false, error: e.message });
+    send(res, e.status || 500, { ok: false, error: e.message });
   }
 };
