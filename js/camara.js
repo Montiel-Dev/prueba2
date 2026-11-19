@@ -23,6 +23,7 @@ const State = {
   count: 4,
   data: null,          // respuesta de /api/variantes cuando ok:true
   errorMsg: "",
+  detail: "",
   canRetry: true,
   openIdx: new Set()   // índices de variantes con la solución abierta
 };
@@ -95,7 +96,7 @@ async function onFile(file){
 /* ---------------- llamada al servidor ---------------- */
 
 async function generate(){
-  State.step = "loading"; render();
+  State.step = "loading"; State.detail = ""; render();
 
   if(location.protocol === "file:"){
     State.step = "error"; State.canRetry = true;
@@ -125,6 +126,7 @@ async function generate(){
     if(!r.ok || d.error){
       State.step = "error"; State.canRetry = true;
       State.errorMsg = d.error || "No se pudo generar las variantes. Intenta de nuevo.";
+      State.detail = d.detalle || "";
       return render();
     }
     if(d.ok === false){
@@ -216,7 +218,7 @@ function screenLoading(){
 function screenError(){
   return `
   <section class="card">
-    <div class="alert bad">${esc(State.errorMsg)}</div>
+    <div class="alert bad">${esc(State.errorMsg)}${State.detail ? `<div class="mu" style="font-size:12px;margin-top:6px">Detalle técnico: ${esc(State.detail)}</div>` : ""}</div>
     <div class="gap">
       ${State.canRetry ? `<label class="btn" for="file-camera">📷 Tomar otra foto</label>` : ""}
       <button class="btn alt" id="btn-reset">Volver al inicio</button>

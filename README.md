@@ -320,7 +320,7 @@ ya tienes cuenta ahí, o porque quieres mejor calidad en el reconocimiento de le
 Si una foto tardaba minutos, la causa más probable era el "thinking" interno del modelo. Ahora:
 
 - `lib/ai.js` lo apaga/minimiza por defecto (`GEMINI_THINKING=off`; usa `default` para volver al comportamiento anterior).
-- **Modelo de respaldo**: si el principal tarda más de 30 s, da 429 o falla, se prueba solo `gemini-2.5-flash` (`GEMINI_FALLBACK_MODEL`). Las cuotas gratis son por modelo.
+- **Modelo de respaldo**: si el principal tarda más de 30 s, da 429 o falla, se prueba solo `gemini-flash-latest` (`GEMINI_FALLBACK_MODEL`). Las cuotas gratis son por modelo.
 - `/api/diagnostico-ia` (abrir en el navegador) mide cuánto tarda cada modelo con un mensaje mínimo.
 - Hay timeout de 55 s (`GEMINI_TIMEOUT_MS`) y `vercel.json` da 60 s de `maxDuration` a `api/variantes.js`.
 - Reintenta una vez ante errores 500/503 de Google y, si el modelo rechaza la config de thinking, reintenta sin ella.

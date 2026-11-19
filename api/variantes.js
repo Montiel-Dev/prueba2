@@ -95,6 +95,6 @@ module.exports = async (req, res) => {
       }))
     });
   }catch(e){
-    send(res, e.status || 500, { ok:false, error: e.message });
+    send(res, e.status || 500, { ok:false, error: e.message, detalle: (e.extra && e.extra.detalle) || "", debug: e.extra || null });
   }
 };
