@@ -16,9 +16,9 @@ test("guard: sin PRO_REQUIRED el Escáner sigue libre", () => {
   setup({ PRO_SECRET: SECRET }); const { guard } = require("../lib/pro");
   assert.doesNotThrow(() => guard(req()));
 });
-test("guard: PRO_REQUIRED sin pase -> 402 (pro:true)", () => {
+test("guard: aunque PRO_REQUIRED=1, el Escáner sigue libre (sin pase)", () => {
   setup({ PRO_SECRET: SECRET, PRO_REQUIRED: "1" }); const { guard } = require("../lib/pro");
-  assert.throws(() => guard(req()), e => e.status === 402 && e.extra.pro === true);
+  assert.doesNotThrow(() => guard(req()));
 });
 test("pase válido pasa; alterado / vencido / de otro secreto se rechazan", () => {
   setup({ PRO_SECRET: SECRET, PRO_REQUIRED: "1" }); const { guard, issue, verify } = require("../lib/pro");
@@ -35,10 +35,10 @@ test("pase válido pasa; alterado / vencido / de otro secreto se rechazan", () =
   // pase con "alg:none"-style (sin firma) tampoco
   assert.strictEqual(verify(b64({ exp: Date.now() + 1e9 }) + "."), null);
 });
-test("sin PRO_SECRET: nadie pasa y no se puede emitir", () => {
-  setup({ PRO_REQUIRED: "1" }); const { guard, issue } = require("../lib/pro");
+test("sin PRO_SECRET: ningún pase es válido y no se puede emitir", () => {
+  setup({ PRO_REQUIRED: "1" }); const { verify, issue } = require("../lib/pro");
   assert.throws(() => issue(), e => e.status === 500);
-  assert.throws(() => guard(req({ "x-pro-token": "a.b" })), e => e.status === 402);
+  assert.strictEqual(verify("a.b"), null);
 });
 test("límite por IP: 429 tras RATE_MAX; otra IP no se afecta", () => {
   setup({ PRO_SECRET: SECRET, RATE_MAX: "3" }); const { guard } = require("../lib/pro");
@@ -93,14 +93,14 @@ test("v6: /api/diagnostico-ia exige DIAG_KEY, clave correcta y respeta el límit
   await call(h, g("?clave=clave-diag-123"));
   assert.strictEqual((await call(h, g("?clave=clave-diag-123"))).status, 429);
 });
-test("/api/leer y /api/variantes: exigen pase y respetan el límite", async () => {
+test("/api/leer y /api/variantes: libres sin pase y respetan el límite", async () => {
   setup({ PRO_SECRET: SECRET, PRO_REQUIRED: "1", RATE_MAX: "5", GROQ_API_KEY: "k" });
   const leer = require("../api/leer"), variantes = require("../api/variantes"), { issue } = require("../lib/pro");
   global.fetch = async () => J(200, { choices: [{ message: { content: JSON.stringify({ ok: true, texto: "Deriva: f(x)=x^2" }) } }] });
   const img = { image: "data:image/jpeg;base64,/9j/4AAQ", mime: "image/jpeg" };
-  const sin = await call(leer, req({ "x-forwarded-for": "3.3.3.3" }, img)); assert.strictEqual(sin.status, 402); assert.strictEqual(sin.body.pro, true);
+  const sin = await call(leer, req({ "x-forwarded-for": "3.3.3.3" }, img)); assert.strictEqual(sin.status, 200);
   const con = await call(leer, req({ "x-forwarded-for": "3.3.3.3", "x-pro-token": issue().token }, img)); assert.strictEqual(con.status, 200);
-  const v = await call(variantes, req({ "x-forwarded-for": "3.3.3.3" }, { texto: "Deriva: f(x)=x^2" })); assert.strictEqual(v.status, 402);
+  const v = await call(variantes, req({ "x-forwarded-for": "3.3.3.3" }, { texto: "Deriva: f(x)=x^2" })); assert.notStrictEqual(v.status, 402);
   for(let i = 0; i < 3; i++) await call(leer, req({ "x-forwarded-for": "3.3.3.3" }, img));
   assert.strictEqual((await call(leer, req({ "x-forwarded-for": "3.3.3.3" }, img))).status, 429);
 });
