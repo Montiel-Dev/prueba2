@@ -11,7 +11,7 @@ function defaultState(){
   return {
     points: 0,
     streak: { count: 0, lastDate: null },
-    blocks: {}, // blockId -> { practice:{exId:true/false correct}, examBest:{score,total,stars} }
+    blocks: {}, // blockId -> { practice:{exId:true/false correct}, examBest:{score,total} }
     reviewQueue: [] // [{blockId, exId}]
   };
 }
@@ -84,20 +84,15 @@ const Engine = {
     this.addPoints(correct ? 10 : 2); // intentar también da algo de puntos, acertar da más
   },
 
+  // Guarda el mejor resultado (por porcentaje) y lo devuelve
   recordExam(blockId, score, total){
-    const pct = total>0 ? score/total : 0;
-    let stars = 0;
-    if(pct >= 0.9) stars = 3;
-    else if(pct >= 0.7) stars = 2;
-    else if(pct >= 0.5) stars = 1;
+    const pct = total>0 ? Math.round(score/total*100) : 0;
     const b = this.state.blocks[blockId];
-    const prevStars = b.examBest ? b.examBest.stars : -1;
-    if(!b.examBest || stars > prevStars){
-      b.examBest = { score, total, stars };
-    }
+    const prev = b.examBest && b.examBest.total ? b.examBest.score/b.examBest.total*100 : -1;
+    if(pct > prev) b.examBest = { score, total };
     this.addPoints(score * 15);
     this.save();
-    return stars;
+    return pct;
   },
 
   markLessonSeen(blockId, idx){
@@ -122,18 +117,28 @@ const Engine = {
     return { total, done, correct, percent: total ? Math.round((correct/total)*100) : 0 };
   },
 
-  blockStars(blockId){
-    const b = this.state.blocks[blockId];
-    return b.examBest ? b.examBest.stars : 0;
+  // Peso de cada sección en el % de un bloque
+  WEIGHTS: { lessons:0.2, practice:0.4, exam:0.4 },
+
+  // % por sección: lecciones vistas, ejercicios dominados, mejor mini-examen
+  sectionPercents(blockId){
+    const l = this.blockLessonStats(blockId), p = this.blockPracticeStats(blockId);
+    const e = this.state.blocks[blockId].examBest;
+    return {
+      lessons: l.total ? Math.round(l.done/l.total*100) : 0,
+      practice: p.percent,
+      exam: e && e.total ? Math.round(e.score/e.total*100) : 0
+    };
   },
 
+  blockPercent(blockId){
+    const s = this.sectionPercents(blockId), w = this.WEIGHTS;
+    return Math.round(s.lessons*w.lessons + s.practice*w.practice + s.exam*w.exam);
+  },
+
+  // % total de la materia = promedio de los % de todos los bloques
   overallPercent(){
-    let done=0, total=0;
-    BLOCKS.forEach(b=>{
-      const stats = this.blockPracticeStats(b.id);
-      done += stats.correct; total += stats.total;
-    });
-    return total ? Math.round((done/total)*100) : 0;
+    return BLOCKS.length ? Math.round(BLOCKS.reduce((n,b)=> n + this.blockPercent(b.id), 0) / BLOCKS.length) : 0;
   },
 
   reviewItems(){

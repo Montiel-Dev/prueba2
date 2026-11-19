@@ -207,3 +207,17 @@ h1{font-size:30px}h2{font-size:24px}h3{font-size:18px}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
 @media print{.bar,.btn,.lnk,.confetti,.unlock,.theme-btn{display:none!important}body{background:#fff;color:#000}.card{border:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* =========================================================
+   ESCÁNER DE PROBLEMAS (cámara + IA)
+   ========================================================= */
+.shot-preview{display:block;max-width:100%;max-height:420px;margin:0 auto;border-radius:var(--r-m);border:1px solid var(--line)}
+.count-picker{display:flex;gap:8px}
+.count-opt{min-width:54px;padding:10px 0;border-radius:var(--r-m);border:2px solid var(--line);background:var(--surface-2);color:var(--text);font:700 16px var(--font-ui);cursor:pointer}
+.count-opt:hover{border-color:var(--accent)}
+.count-opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.var-list{display:grid;gap:14px;margin-bottom:16px}
+.var-card{margin:0}
+.var-enun{font:600 19px var(--font-display);margin:4px 0 10px;overflow-wrap:anywhere}
+.var-steps{margin:10px 0 0;padding-left:20px;display:grid;gap:6px;font-size:14.5px;color:var(--text)}
+.var-result{margin-top:12px;font:700 17px var(--font-display);color:var(--success);border-left:3px solid var(--success);background:var(--success-bg);border-radius:0 var(--r-m) var(--r-m) 0;padding:8px 14px}

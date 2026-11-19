@@ -16,10 +16,7 @@ const UI = {
 
   // ---------------- sidebar ----------------
   renderSidebar(){
-    document.getElementById("stat-points").textContent = Engine.state.points;
-    document.getElementById("stat-streak").textContent = Engine.state.streak.count;
     const reviewCount = Engine.state.reviewQueue.length;
-    document.getElementById("stat-review").textContent = reviewCount;
 
     const nav = document.getElementById("block-nav");
     nav.innerHTML = "";
@@ -51,17 +48,16 @@ const UI = {
   },
 
   _blockBtn(block){
-    const stats = Engine.blockPracticeStats(block.id);
-    const stars = Engine.blockStars(block.id);
+    const sp = Engine.sectionPercents(block.id), bp = Engine.blockPercent(block.id);
     const btn = document.createElement("button");
     btn.className = "block-item" + (this._activeBlockId===block.id ? " active" : "");
     btn.innerHTML = `
       <div class="block-item-top">
         <span class="block-item-title">${block.title}</span>
-        <span class="block-item-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>
+        <span class="block-item-pct">${bp}%</span>
       </div>
-      <div class="block-item-bar"><div class="block-item-bar-fill" style="width:${stats.percent}%"></div></div>
-      <div class="block-item-sub">${stats.correct}/${stats.total} ejercicios dominados</div>
+      <div class="block-item-bar"><div class="block-item-bar-fill" style="width:${bp}%"></div></div>
+      <div class="block-item-sub">Lecc. ${sp.lessons}% · Práct. ${sp.practice}% · Exam. ${sp.exam}%</div>
     `;
     btn.addEventListener("click", ()=> this.showBlockOverview(block.id));
     return btn;
@@ -127,13 +123,18 @@ const UI = {
       return s.correct < s.total;
     }) || order[0];
 
+    // Solo se muestran los bloques que ya tienen avance, y cuánto aportan al total
+    const rows = BLOCKS.map(b => ({ b, sp:Engine.sectionPercents(b.id), bp:Engine.blockPercent(b.id) })).filter(r => r.bp > 0);
+    const progressCard = rows.length ? `<div class="lesson-card">
+        <h2 style="font-size:15px;">Avance por bloque</h2>
+        <div class="pct-table">${rows.map(r => `<div class="pct-row"><span class="pct-name">${r.b.title}</span>${
+          [["Lecciones",r.sp.lessons],["Práctica",r.sp.practice],["Examen",r.sp.exam]].filter(x=>x[1]>0).map(x=>`<span>${x[0]} <b>${x[1]}%</b></span>`).join("")
+        }<span class="pct-block">${r.bp}% <small>· +${(Math.round(r.bp/BLOCKS.length*10)/10)}% al total</small></span></div>`).join("")}</div>
+      </div>` : "";
+
     $main.innerHTML = `
       <div class="home-hero">
         <div class="eyebrow">Tu progreso</div>
-        <h1>Bienvenido de vuelta a Derivadas Dojo</h1>
-        <p class="lead">Aprende haciendo: cada bloque tiene lecciones cortas, ejercicios guiados
-        con pistas y explicación, y un mini-examen al final. Avanza en el orden que
-        necesites para tu curso — tú eliges el bloque.</p>
         <div class="action-row">
           <button class="btn btn-primary" id="btn-continue">Continuar: ${nextBlock.title}</button>
         </div>
@@ -149,6 +150,20 @@ const UI = {
             : '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Jugar Modo Vidas</a> <a class="btn btn-ghost" href="arcade.html" style="text-decoration:none;display:inline-block">Ver el Arcade</a>'}
         </div>
       </div>
+      <div class="lesson-card">
+        <div class="pay-head"><h2>📷 Escáner de problemas</h2><span class="sim-tag" style="color:var(--accent);border-color:var(--accent)">NUEVO</span></div>
+        <p class="lead">Toma una foto a un problema de derivadas (de tu libro, tarea o examen) y genera
+        <strong>variantes parecidas</strong> — mismo tema, misma dificultad, números distintos — con
+        solución paso a paso, para seguir practicando ese tipo de ejercicio.</p>
+        <div class="action-row">
+          <a class="btn btn-primary" href="camara.html" style="text-decoration:none;display:inline-block">Abrir cámara</a>
+        </div>
+      </div>
+      <!-- TODO (cuando quieras hacerlo Pro): agrega aquí la misma condición que usa
+           el Arcade, p. ej. mostrar "Abrir cámara" solo si Pay.isPro() y si no, un
+           botón "🔒 Desbloquear con Pro" como en js/arcade-core.js (ver `guard()`
+           y arcade.html). El backend (api/variantes.js) también deja lista una nota
+           de dónde validar el pago antes de llamar a la IA. -->
       ${Pay.cardHTML()}
       <div class="lesson-card">
         <h2 style="font-size:15px;color:var(--text-dim);">Cómo leer los colores de las fórmulas</h2>
@@ -159,11 +174,9 @@ const UI = {
           <span><span class="swatch" style="background:var(--func-color)"></span> función (sen, cos, ln...)</span>
         </div>
       </div>
+      ${progressCard}
       <div class="home-grid">
-        <div class="home-card"><h3>Progreso general</h3><div class="big">${overall}%</div></div>
-        <div class="home-card"><h3>Puntos</h3><div class="big">${Engine.state.points}</div></div>
-        <div class="home-card"><h3>Racha de días</h3><div class="big">${Engine.state.streak.count}</div></div>
-        <div class="home-card"><h3>Pendientes de repaso</h3><div class="big">${Engine.state.reviewQueue.length}</div></div>
+        <div class="home-card total"><h3>Progreso total de la materia</h3><div class="big">${overall}%</div></div>
       </div>
     `;
     document.getElementById("btn-continue").addEventListener("click", ()=> this.showBlockOverview(nextBlock.id));
@@ -195,7 +208,7 @@ const UI = {
     const block = BLOCKS.find(b=>b.id===blockId);
     const pStats = Engine.blockPracticeStats(blockId);
     const lStats = Engine.blockLessonStats(blockId);
-    const stars = Engine.blockStars(blockId);
+    const sp = Engine.sectionPercents(blockId), bp = Engine.blockPercent(blockId);
     const examBest = Engine.state.blocks[blockId].examBest;
 
     $main.innerHTML = `
@@ -204,19 +217,20 @@ const UI = {
       <p class="lead">${block.summary}</p>
 
       <div class="home-grid" style="margin:20px 0 28px;">
-        <div class="home-card"><h3>Lecciones vistas</h3><div class="big">${lStats.done}/${lStats.total}</div></div>
-        <div class="home-card"><h3>Ejercicios dominados</h3><div class="big">${pStats.correct}/${pStats.total}</div></div>
-        <div class="home-card"><h3>Mini-examen</h3><div class="big">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div></div>
+        <div class="home-card"><h3>Lecciones (${lStats.done}/${lStats.total})</h3><div class="big">${sp.lessons}%</div></div>
+        <div class="home-card"><h3>Práctica (${pStats.correct}/${pStats.total})</h3><div class="big">${sp.practice}%</div></div>
+        <div class="home-card"><h3>Mini-examen</h3><div class="big">${sp.exam}%</div></div>
+        <div class="home-card total"><h3>Total del bloque</h3><div class="big">${bp}%</div></div>
       </div>
 
       <div class="lesson-card">
-        <h2>1. Lecciones</h2>
+        <h2>1. Lecciones <span class="sec-pct">${sp.lessons}%</span></h2>
         <p class="lead" style="margin-bottom:14px;">Repasa la teoría antes de practicar, o sáltatela si ya la dominas.</p>
         <div class="action-row" id="lesson-links"></div>
       </div>
 
       <div class="lesson-card">
-        <h2>2. Práctica guiada</h2>
+        <h2>2. Práctica guiada <span class="sec-pct">${sp.practice}%</span></h2>
         <p class="lead" style="margin-bottom:14px;">Ejercicios con pistas y explicación completa cuando te equivocas. Así se aprende.</p>
         <div class="action-row">
           <button class="btn btn-primary" id="btn-practice">Practicar (${pStats.total} ejercicios)</button>
@@ -224,7 +238,7 @@ const UI = {
       </div>
 
       <div class="lesson-card">
-        <h2>3. Mini-examen</h2>
+        <h2>3. Mini-examen <span class="sec-pct">${sp.exam}%</span></h2>
         <p class="lead" style="margin-bottom:14px;">Sin pistas, para medir si ya lo dominas tú solo. ${examBest ? `Mejor resultado: ${examBest.score}/${examBest.total}.` : "Aún no lo presentas."}</p>
         <div class="action-row">
           <button class="btn btn-amber" id="btn-exam">Presentar mini-examen (${block.exam.length} preguntas)</button>
@@ -261,6 +275,7 @@ const UI = {
       <div class="lesson-card">
         <h2>${lesson.title}</h2>
         <div class="lesson-body">${fixLesson(lesson.html)}</div>
+        ${ANIM_LESSONS[lesson.title] ? `<div class="anim-slot"><button class="btn btn-amber" id="btn-anim" type="button">▶ Ver animado, paso a paso</button><div id="anim-host"></div></div>` : ""}
         <div class="lesson-nav">
           <div class="lesson-dots">
             ${block.lessons.map((_,i)=>`<span class="lesson-dot${i===idx?' active':''}"></span>`).join("")}
@@ -273,6 +288,8 @@ const UI = {
       </div>
     `;
 
+    const ab = document.getElementById("btn-anim");
+    if(ab) ab.addEventListener("click", ()=>{ ab.style.display = "none"; Anim.mount(document.getElementById("anim-host"), ANIM_LESSONS[lesson.title]); });
     if(idx>0) document.getElementById("btn-prev").addEventListener("click", ()=> this.showLesson(blockId, idx-1));
     document.getElementById("btn-next").addEventListener("click", ()=>{
       if(isLast) this.startSession("practice", blockId);
@@ -434,8 +451,8 @@ const UI = {
       nextBtn.focus({ preventScroll:true });
       fb.scrollIntoView({ behavior:"smooth", block:"nearest" });
       if(!correct){
-        const st = document.getElementById("stat-review").parentElement;
-        st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse");
+        const st = document.getElementById("btn-review");
+        if(st){ st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse"); }
       }
     });
   },
@@ -463,10 +480,11 @@ const UI = {
         ${this.formulaPanel(item.blockId)}
         <div class="exercise-prompt"><span class="func">${m(ex.func)}</span></div>
         ${ex.prompt ? `<div class="exercise-prompt">${rich(ex.prompt)}</div>` : ""}
+        ${exam ? "" : `<div class="anim-slot"><button class="btn btn-amber" id="btn-ex" type="button">▶ Ver un ejemplo parecido, animado</button><div id="g-anim"></div></div>`}
         <div class="worked-steps" id="g-done"></div>
         <div id="g-step"></div>
         <div id="feedback-area"></div>
-        <div class="action-row" id="action-row"></div>
+                <div class="action-row" id="action-row"></div>
       </div>`;
 
     const drawDone = ()=>{
@@ -562,6 +580,8 @@ const UI = {
       nx.addEventListener("click", ()=>{ s.index++; this.renderCurrentExercise(); });
       row.appendChild(nx); nx.focus({ preventScroll:true });
     };
+    const eb = $("btn-ex");
+    if(eb) eb.addEventListener("click", ()=>{ eb.style.display = "none"; Anim.mount($("g-anim"), Anim.exampleFor(ex)); });
     showStep();
   },
 
@@ -571,14 +591,16 @@ const UI = {
     $main.innerHTML = `<div class="result-hero"><p>Calculando resultados…</p></div>`;
 
     if(s.mode === "exam"){
-      const stars = Engine.recordExam(s.blockId, s.score, s.list.length);
+      const pct = Engine.recordExam(s.blockId, s.score, s.list.length);
+      const stars = pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0;   // solo elige el mensaje
       const block = BLOCKS.find(b=>b.id===s.blockId);
       this.renderSidebar();
       $main.innerHTML = `
         <div class="result-hero">
           <div class="eyebrow">Mini-examen · ${block.title}</div>
           <div class="result-score">${s.score}/${s.list.length}</div>
-          <div class="result-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div>
+          <div class="result-stars">${pct}%</div>
+          <p class="pct-note">Avance del bloque: <b>${Engine.blockPercent(s.blockId)}%</b> · Materia: <b>${Engine.overallPercent()}%</b></p>
           <p class="lead" style="margin:0 auto 18px;">
             ${stars===3 ? "Dominas este bloque. ¡Listo para el examen real!" :
               stars===2 ? "Vas muy bien. Repasa lo que fallaste y vuelve a intentarlo." :

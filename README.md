@@ -4,9 +4,10 @@ Una app tipo "Duolingo de derivadas" para practicar cálculo diferencial
 aprendiendo **haciendo**: pasos guiados, construcción de respuestas con
 fichas, y explicación completa cada vez que te equivocas.
 
-No necesita internet, servidor, ni instalar nada (excepto, opcionalmente,
-la extensión Live Server de VS Code). Todo tu progreso se guarda en tu
-propio navegador.
+Todo tu progreso se guarda en tu propio navegador. Para estudiar no necesitas
+servidor ni instalar nada (excepto, opcionalmente, la extensión Live Server de VS Code).
+Solo el pago en modo `"mercadopago"` necesita servidor (Vercel); el checkout simulado propio
+(modo `"local"`, el predeterminado) funciona sin él.
 
 ## Cómo ejecutarla
 
@@ -47,14 +48,13 @@ y ya funciona.
   correcta o dónde estuvo el error — nunca solo "incorrecto".
 
 - **Mini-examen por bloque**: mismos tipos de ejercicio pero sin pistas,
-  para medir si ya lo dominas solo. Te da 0 a 3 estrellas según tu
-  porcentaje de aciertos.
+  para medir si ya lo dominas solo. Guarda tu mejor porcentaje.
 
 - **Repaso de errores**: todo lo que fallas en la práctica se guarda en una
   cola de repaso (visible en la barra lateral). Puedes repasar solo esos
   ejercicios hasta dominarlos; al acertar, salen de la cola.
 
-- **Progreso persistente**: puntos, racha de días, estrellas por bloque y
+- **Progreso persistente**: puntos, racha de días, porcentajes por sección y
   cola de repaso se guardan en `localStorage` de tu navegador, así que
   siguen ahí la próxima vez que abras la app (en el mismo navegador y
   computadora).
@@ -101,26 +101,49 @@ copiando la estructura completa de uno existente.
 
 ```
 derivadas-dojo/
-├─ index.html          estructura de la página
-├─ css/styles.css       todo el diseño visual
-├─ js/data.js            banco de lecciones y ejercicios (edita aquí)
-├─ js/guided.js          problemas guiados paso a paso + fórmulas (edita aquí)
-├─ js/engine.js          progreso, puntos, racha, cola de repaso
-├─ js/math.js            fórmulas: fracciones apiladas, raíces, colores
-├─ js/dragdrop.js        constructor de fichas (arrastrar / tocar)
-├─ js/ui.js              pantallas e interacción
-└─ js/main.js            arranque de la app
-├─ arcade.html           Arcade: práctica infinita con vidas + examen cronometrado
-├─ js/pay.js             Dojo Pro: botón y retorno del pago simulado
-├─ api/                  funciones de servidor (Vercel): crear y verificar pago
-├─ lib/mp.js             helpers de Mercado Pago + candado de "solo cuentas de prueba"
+├─ index.html           estructura de la página (abre en el mapa de materias)
+├─ css/styles.css       diseño de la app y del curso
+├─ css/map.css          estilo espacial del mapa de burbujas
+├─ css/arcade.css       estilo de las páginas del Arcade y del checkout
+├─ js/data.js           banco de lecciones y ejercicios (edita aquí)
+├─ js/guided.js         problemas guiados paso a paso + fórmulas (edita aquí)
+├─ js/engine.js         progreso, puntos, racha, cola de repaso y porcentajes
+├─ js/math.js           fórmulas: fracciones apiladas, raíces, colores
+├─ js/dragdrop.js       constructor de fichas (arrastrar / tocar)
+├─ js/subjects.js       materias del mapa, requisitos y relaciones (edita aquí)
+├─ js/map.js            pantalla de inicio: mapa de burbujas, zoom y recuadro
+├─ js/anim.js           animaciones paso a paso del desarrollo (edita ANIM_LESSONS)
+├─ js/plans.js          planes de estudio por institución (edita aquí)
+├─ js/pay.js            Dojo Pro: pago simulado (checkout propio o Mercado Pago)
+├─ js/arcade-core.js    núcleo del Arcade: estado, vidas, generador, candado Pro
+├─ js/ui.js             pantallas e interacción del curso
+├─ js/main.js           arranque de la app
+├─ arcade.html          hub del Arcade
+├─ vidas.html           Modo Vidas (ejercicios al azar)
+├─ examen.html          Mini-examen cronometrado (Pro)
+├─ checkout.html        checkout simulado
+├─ camara.html          Escáner de problemas: foto -> variantes con IA (gratis por ahora)
+├─ js/camara.js         captura/compresión de la foto, llamada a /api/variantes y sus pantallas
+├─ api/                 funciones de servidor (Vercel): crear/verificar pago y generar variantes
+├─ lib/mp.js            helpers de Mercado Pago + candado de "solo cuentas de prueba"
+├─ lib/ai.js            helpers para hablar con la API de Anthropic (Escáner de problemas)
 ├─ vercel.json          configuración de publicación
 └─ favicon.svg
 ```
 
+## Cómo encaja todo
+
+1. La app **abre en el mapa de materias** (burbujas tipo planetas). Arriba a la derecha hay un acceso al **Arcade**
+   y, si ya pagaste, la insignia **PRO**.
+2. La primera vez pregunta tu **institución** (plan de estudios) encima del mapa.
+3. Al entrar a **Cálculo diferencial** ves el curso: unidades de tu plan, porcentajes por bloque, animaciones paso a paso,
+   la tarjeta del Arcade y la de **Dojo Pro**.
+4. El **Arcade** (Modo Vidas gratis; Pro = vidas infinitas + Mini-examen) y el **pago simulado** comparten el mismo
+   `Pay.isPro()`: al pagar se desbloquea todo en todas las pantallas.
+
 ## Publicar en Vercel (gratis)
 
-Es un sitio estático: no hay build ni servidor.
+Es un sitio estático (sin build). La carpeta `api/` solo se usa en el modo de pago `"mercadopago"`.
 
 1. Sube esta carpeta a un repositorio de GitHub.
 2. En vercel.com → **Add New → Project** → importa el repo. No cambies nada
@@ -142,6 +165,33 @@ cuenta como dominado solo si sale sin errores; si no, pasa a la cola de repaso.
 - El **mini-examen** es 100 % guiado, sin pistas pero con fórmulas.
 - Cada bloque tiene una lección extra de **ejemplo resuelto**.
 - Los ejercicios antiguos de un solo paso quedan al final de la práctica como refuerzo.
+
+## Pantalla de inicio: mapa de materias (nuevo)
+
+La app abre en un mapa: una burbuja central (Matemáticas) y 5 ramas
+(Cálculo diferencial, Cálculo integral, Geometría, Trigonometría, Álgebra).
+
+- **Primer clic** en una burbuja: zoom + recuadro translúcido con sus requisitos.
+  Al abrir una rama, las demás se colorean según qué tan relacionadas están
+  (verde = muy, azul = relacionada, gris = poco) y aparecen materias extra.
+- **Segundo clic** en la misma burbuja (o botón "Entrar al curso"): abre el curso.
+- **Esc**, clic en el fondo o la × vuelven a la vista general.
+- El anillo de cada burbuja es el % completado (hoy solo Cálculo diferencial
+  tiene progreso real; el resto marca 0 % y "Próximamente").
+- En la barra lateral del curso, "← Mapa de materias" regresa al mapa.
+
+Para activar un curso nuevo: en `js/subjects.js` pon `available:true`, calcula su
+progreso en `subjectPct()` y conéctalo en `MapScreen.openCourse()` (`js/map.js`).
+
+## Porcentajes y animaciones (nuevo)
+
+- **Sin estrellas.** Cada bloque muestra el % de tres secciones: Lecciones (vistas), Práctica
+  (ejercicios dominados) y Mini-examen (mejor resultado). Bloque = 20 % lecciones + 40 % práctica
+  + 40 % examen; el % total de la materia es el promedio de los bloques (`Engine.overallPercent()`;
+  los pesos están en `Engine.WEIGHTS`).
+- **Animación del desarrollo** (`js/anim.js`): botón "Ver animado" en las lecciones de *Ejemplo resuelto*
+  y, en cada problema guiado, "Ver un ejemplo parecido, animado": un caso extra con otros números y la misma técnica (`ANIM_EXTRA`); la expresión se transforma en su sitio y los términos se mueven, cambian de signo o se tachan. Reproducir/pausa, anterior/siguiente
+  y velocidad; muestra cada paso sin saltarse ninguno.
 
 ## Dojo Pro — pago simulado con Mercado Pago
 
@@ -220,6 +270,49 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
 - Para reiniciar y volver a probar el pago: en la consola del navegador
   `localStorage.removeItem("derivadas-dojo-pro-v1")`.
 - Agregar un tipo de ejercicio: añade `{level, name, fn(){ return {q, ok, bad:[3 errores], why} }}` a `GENS`.
+
+## Escáner de problemas (cámara + IA) — nuevo
+
+`camara.html` (enlazado desde una tarjeta en la pantalla principal, "📷 Escáner de problemas").
+El alumno toma una foto a un problema de derivadas (o sube una que ya tenga), y la app:
+
+1. Comprime la foto en el propio navegador (`js/camara.js`, canvas a ≤1400px, JPEG) antes de enviarla.
+2. La manda a `api/variantes.js`, que llama a la API de Anthropic (Claude) con la imagen.
+3. La IA transcribe el problema, identifica tema y dificultad, y genera 3/4/6 **variantes**: mismo
+   tema y técnica, misma dificultad aproximada, pero con números/funciones distintos — cada una con
+   su **solución paso a paso** y resultado final.
+4. Si la foto no trae un problema de derivadas legible, se avisa y se puede intentar con otra.
+
+**Esta función es gratis por ahora, a propósito** (no está detrás de Dojo Pro). El código deja listo
+dónde activarlo como Pro más adelante:
+
+- `js/ui.js`: la tarjeta "Escáner de problemas" en la pantalla principal (justo antes de la tarjeta de
+  Dojo Pro) — ahí se podría condicionar a `Pay.isPro()` igual que el Arcade.
+- `api/variantes.js`: trae una nota al inicio de qué validar en el servidor antes de llamar a la IA,
+  si se quiere evitar que alguien use el endpoint directamente sin haber pagado (hoy, igual que el
+  resto del Arcade, el estado "Pro" solo vive en `localStorage` del navegador — una protección real
+  necesitaría mandar y verificar el comprobante de pago, como ya hace `lib/mp.js`).
+
+### Configuración (una sola vez)
+
+1. Crea una API key en [console.anthropic.com](https://console.anthropic.com/) (requiere una cuenta
+   con crédito/facturación — cada foto analizada consume unos cuantos centavos de uso de la API).
+2. Pégala como variable de entorno `ANTHROPIC_API_KEY`:
+   - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
+   - Vercel: Settings → Environment Variables → `ANTHROPIC_API_KEY`.
+3. (Opcional) `ANTHROPIC_MODEL` si quieres fijar otro modelo (por defecto `claude-sonnet-5-5`).
+
+Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
+abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
+
+### Archivos
+
+| Archivo | Qué es |
+|---|---|
+| `camara.html` | Página del Escáner (captura/sube foto, elige cuántas variantes, muestra resultados). |
+| `js/camara.js` | Captura/compresión de la foto, llamada a `/api/variantes` y render de las pantallas. |
+| `api/variantes.js` | Endpoint serverless: recibe la foto, llama a la IA y valida/formatea su respuesta. |
+| `lib/ai.js` | Helper compartido para hablar con la API de Anthropic (igual rol que `lib/mp.js` para pagos). |
 
 ## Planes de estudio por institución
 
