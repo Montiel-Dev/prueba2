@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
     const { json, meta } = await run({
       vision: false, system: SYSTEM,
       user: `Problema: ${texto}\n\nGenera exactamente ${count} variantes.`,
-      maxTokens: 3000, totalMs: 50000, validate
+      maxTokens: 3000, totalMs: 28000, validate
     });
 
     send(res, 200, {

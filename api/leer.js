@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
 
     const { json, meta } = await run({
       vision: true, system: SYSTEM, user: "Transcribe el problema de la foto.",
-      image: { mime, base64 }, maxTokens: 400, totalMs: 50000,
+      image: { mime, base64 }, maxTokens: 400, totalMs: 28000,
       validate: j => { if(j.ok !== false && !String(j.texto || "").trim()) throw new Error("sin texto"); }
     });
 

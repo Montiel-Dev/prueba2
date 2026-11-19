@@ -14,7 +14,7 @@ const $app = document.getElementById("app");
 const MAX_DIM = 1000;        // tamaño máximo (px) de la foto ya comprimida (más chica = más rápido)
 const JPEG_Q = 0.75;
 const MAX_SOURCE_MB = 20;    // límite del archivo original, antes de comprimir
-const CLIENT_TIMEOUT_MS = 58000; // si el servidor no responde en este tiempo, se avisa en vez de esperar sin fin
+const CLIENT_TIMEOUT_MS = 30000; // si el servidor no responde en este tiempo, se avisa en vez de esperar sin fin
 
 const State = {
   step: "intro",      // intro | reading | preview | loading | result | error
@@ -99,12 +99,24 @@ async function onFile(file){
 
 // POST JSON con límite de tiempo propio (así nunca se queda esperando sin fin).
 async function postJson(url, body, ms){
+  // Un reintento automático si el servidor devuelve error transitorio (IA saturada, red).
+  let last;
+  for(let i = 0; i < 2; i++){
+    try{
+      last = await postJson1(url, body, ms);
+      if(last.ok || ![429, 500, 502, 503, 504].includes(last.status)) return last;
+    }catch(e){ if(i === 1) throw e; }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  return last;
+}
+async function postJson1(url, body, ms){
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try{
     const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
     const d = await r.json().catch(() => ({}));
-    return { ok: r.ok, d };
+    return { ok: r.ok, status: r.status, d };
   }finally{ clearTimeout(timer); }
 }
 
