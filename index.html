@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Derivadas Dojo — aprende a derivar paso a paso</title>
+<meta name="description" content="Aprende derivadas desde cero con ejemplos de la vida diaria, ejercicios guiados y explicaciones claras. Gratis y sin registro.">
+<meta property="og:title" content="Derivadas Dojo">
+<meta property="og:description" content="Aprende a derivar paso a paso, sin frustrarte. Gratis.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0E1420">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&family=Literata:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app" class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">d/dx</span>
+      <span class="brand-name">Derivadas Dojo</span>
+      <span class="pro-badge" id="pro-badge" hidden>PRO</span>
+      <button class="theme-btn" id="btn-theme" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">◐</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat" title="Puntos"><span class="stat-icon">◆</span><span id="stat-points">0</span></div>
+      <div class="stat" title="Racha de días"><span class="stat-icon">▲</span><span id="stat-streak">0</span></div>
+      <div class="stat" title="Pendientes de repaso"><span class="stat-icon">↻</span><span id="stat-review">0</span></div>
+    </div>
+    <nav class="block-nav" id="block-nav"></nav>
+    <button class="review-btn" id="btn-review">Repasar errores (<span id="review-count">0</span>)</button>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/math.js"></script>
+<script src="js/guided.js"></script>
+<script src="js/dragdrop.js"></script>
+<script src="js/pay.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
