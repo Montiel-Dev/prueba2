@@ -11,15 +11,13 @@
 
 const $app = document.getElementById("app");
 
-const MAX_DIM = 1000;        // tamaño máximo (px) de la foto ya comprimida (más chica = más rápido)
-const JPEG_Q = 0.75;
+const MAX_DIM = 1200;        // tamaño máximo (px) de la foto ya comprimida (más chica = más rápido)
+const JPEG_Q = 0.8;
 const MAX_SOURCE_MB = 20;    // límite del archivo original, antes de comprimir
-const CLIENT_TIMEOUT_MS = 58000; // si el servidor no responde en este tiempo, se avisa en vez de esperar sin fin
+const CLIENT_TIMEOUT_MS = 70000; // si el servidor no responde en este tiempo, se avisa en vez de esperar sin fin
 
 const State = {
-  step: "intro",      // intro | reading | preview | loading | result | error
-  texto: "",          // texto del problema (leído de la foto o escrito por el alumno)
-  readWarn: "",       // aviso si no se pudo leer la foto
+  step: "intro",      // intro | preview | loading | result | error
   imageDataUrl: null,
   mime: "image/jpeg",
   count: 4,
@@ -88,59 +86,16 @@ async function onFile(file){
     State.mime = "image/jpeg";
     State.data = null;
     State.openIdx = new Set();
+    State.step = "preview";
   }catch(e){
     State.step = "error"; State.errorMsg = e.message; State.canRetry = true;
-    return render();
   }
-  readPhoto();
-}
-
-/* ---------------- llamadas al servidor ---------------- */
-
-// POST JSON con límite de tiempo propio (así nunca se queda esperando sin fin).
-async function postJson(url, body, ms){
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  try{
-    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
-    const d = await r.json().catch(() => ({}));
-    return { ok: r.ok, d };
-  }finally{ clearTimeout(timer); }
-}
-
-function startTicker(){
-  const t0 = Date.now();
-  const tick = setInterval(() => {
-    const el = document.getElementById("elapsed");
-    if(el) el.textContent = Math.round((Date.now() - t0) / 1000) + " s";
-  }, 500);
-  return () => clearInterval(tick);
-}
-
-/* Paso 1: foto -> texto del problema. Si falla, NO se bloquea al alumno:
-   pasa a la pantalla de texto para que lo escriba o lo corrija. */
-async function readPhoto(){
-  State.step = "reading"; State.readWarn = ""; State.texto = ""; render();
-  const stop = startTicker();
-  try{
-    if(location.protocol === "file:") throw new Error("file");
-    const { ok, d } = await postJson("/api/leer", { image: State.imageDataUrl, mime: State.mime }, CLIENT_TIMEOUT_MS);
-    console.log("[escáner] leer:", d.debug || d);
-    if(ok && d.ok && d.texto) State.texto = d.texto;
-    else State.readWarn = d.motivo || d.error || "No pude leer la foto.";
-  }catch(e){
-    State.readWarn = e && e.name === "AbortError" ? "La lectura de la foto tardó demasiado." : "No pude leer la foto.";
-  }finally{ stop(); }
-  if(State.readWarn) State.readWarn += " Escribe el problema aquí abajo y sigue sin foto, o toma otra.";
-  State.step = "preview";
   render();
 }
 
-/* Paso 2: texto -> variantes (sin imagen, rápido). */
+/* ---------------- llamada al servidor ---------------- */
+
 async function generate(){
-  const ta = document.getElementById("texto");
-  if(ta) State.texto = ta.value.trim();
-  if(State.texto.length < 3){ State.readWarn = "Escribe el problema primero."; return render(); }
   State.step = "loading"; State.detail = ""; render();
 
   if(location.protocol === "file:"){
@@ -149,31 +104,53 @@ async function generate(){
     return render();
   }
 
+  // Contador de segundos en la pantalla de carga (no vuelve a renderizar todo).
   const t0 = Date.now();
-  const stop = startTicker();
-  try{
-    const { ok, d } = await postJson("/api/variantes", { texto: State.texto, count: State.count }, CLIENT_TIMEOUT_MS);
-    console.log("[escáner] variantes", Math.round((Date.now() - t0) / 1000) + " s", "| servidor:", d.debug || d);
+  const tick = setInterval(() => {
+    const el = document.getElementById("elapsed");
+    if(el) el.textContent = Math.round((Date.now() - t0) / 1000) + " s";
+  }, 500);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS);
 
-    if(!ok || d.error){
-      State.step = "preview"; State.readWarn = (d.error || "No se pudieron generar las variantes.") + " Puedes volver a intentarlo.";
+  try{
+    const r = await fetch("/api/variantes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: State.imageDataUrl, mime: State.mime, count: State.count }),
+      signal: ctrl.signal
+    });
+    const d = await r.json().catch(() => ({}));
+    console.log("[escáner] total", Math.round((Date.now() - t0) / 1000) + " s", "| servidor:", d.debug || d);
+
+    if(!r.ok || d.error){
+      State.step = "error"; State.canRetry = true;
+      State.errorMsg = d.error || "No se pudo generar las variantes. Intenta de nuevo.";
       State.detail = d.detalle || "";
       return render();
     }
+    if(d.ok === false){
+      State.step = "error"; State.canRetry = true;
+      State.errorMsg = d.motivo || "No se reconoció un problema de derivadas en la foto. Intenta con otra.";
+      return render();
+    }
+
     State.data = d;
     State.openIdx = new Set();
     State.step = "result";
   }catch(e){
-    State.step = "preview";
-    State.readWarn = e && e.name === "AbortError"
-      ? "La IA tardó demasiado. Vuelve a intentarlo (con menos variantes suele ir más rápido)."
+    State.step = "error"; State.canRetry = true;
+    State.errorMsg = e && e.name === "AbortError"
+      ? "La IA tardó demasiado en responder. Intenta de nuevo (con otra foto o con menos variantes)."
       : "No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
-  }finally{ stop(); }
+  }finally{
+    clearInterval(tick); clearTimeout(timer);
+  }
   render();
 }
 
 function reset(){
-  State.step = "intro"; State.imageDataUrl = null; State.texto = ""; State.readWarn = ""; State.data = null; State.errorMsg = "";
+  State.step = "intro"; State.imageDataUrl = null; State.data = null; State.errorMsg = "";
   render();
 }
 
@@ -199,7 +176,6 @@ function screenIntro(){
     </div>
     <input type="file" id="file-camera" accept="image/*" capture="environment" hidden>
     <input type="file" id="file-upload" accept="image/*" hidden>
-    <button type="button" class="lnk" id="btn-type" style="margin-top:10px">o escribe el problema a mano</button>
   </section>
   <section class="card">
     <h3>Cómo funciona</h3>
@@ -213,14 +189,9 @@ function screenIntro(){
 
 function screenPreview(){
   return `
-  <div class="hero"><div class="eyebrow">Paso 2</div><h1>Revisa el problema</h1></div>
-  ${State.imageDataUrl ? `<section class="card"><img class="shot-preview" src="${State.imageDataUrl}" alt="Foto del problema"></section>` : ""}
+  <div class="hero"><div class="eyebrow">Paso 2</div><h1>¿Se ve bien la foto?</h1></div>
   <section class="card">
-    ${State.readWarn ? `<div class="alert warn">${esc(State.readWarn)}${State.detail ? `<div class="mu" style="font-size:12px;margin-top:6px">Detalle técnico: ${esc(State.detail)}</div>` : ""}</div>` : ""}
-    <h3>Esto es lo que debo resolver</h3>
-    <p class="mu" style="margin:0 0 8px">Corrígelo si la lectura de la foto no quedó exacta (p. ej. exponentes o signos).</p>
-    <textarea id="texto" rows="3" maxlength="500" placeholder="Ej.: Deriva: f(x) = (3x^2 + 1)^4"
-      style="width:100%;box-sizing:border-box;padding:12px;border-radius:var(--r-m);border:2px solid var(--line);background:var(--surface-2);color:var(--text);font:500 16px var(--font-ui);resize:vertical">${esc(State.texto)}</textarea>
+    <img class="shot-preview" src="${State.imageDataUrl}" alt="Foto del problema">
   </section>
   <section class="card">
     <h3>¿Cuántas variantes quieres?</h3>
@@ -235,20 +206,11 @@ function screenPreview(){
   </section>`;
 }
 
-function screenReading(){
-  return `
-  <section class="card proc">
-    <div class="spin"></div>
-    <h3>Leyendo tu foto…</h3>
-    <p class="mu">Unos segundos. <span id="elapsed">0 s</span></p>
-  </section>`;
-}
-
 function screenLoading(){
   return `
   <section class="card proc">
     <div class="spin"></div>
-    <h3>Creando variantes…</h3>
+    <h3>Leyendo tu foto y creando variantes…</h3>
     <p class="mu">Esto puede tardar unos segundos. <span id="elapsed">0 s</span></p>
   </section>`;
 }
@@ -299,7 +261,6 @@ function screenResult(){
 function render(){
   const body =
     State.step === "intro" ? screenIntro() :
-    State.step === "reading" ? screenReading() :
     State.step === "preview" ? screenPreview() :
     State.step === "loading" ? screenLoading() :
     State.step === "error" ? screenError() :
@@ -320,11 +281,6 @@ function bind(){
   if(picker) picker.querySelectorAll(".count-opt").forEach(b => {
     b.onclick = () => { State.count = +b.dataset.n; render(); };
   });
-
-  const ta = document.getElementById("texto");
-  if(ta) ta.oninput = () => { State.texto = ta.value; };
-  const typeBtn = document.getElementById("btn-type");
-  if(typeBtn) typeBtn.onclick = () => { State.imageDataUrl = null; State.readWarn = ""; State.step = "preview"; render(); const t = document.getElementById("texto"); if(t) t.focus(); };
 
   const genBtn = document.getElementById("btn-generate");
   if(genBtn) genBtn.onclick = generate;

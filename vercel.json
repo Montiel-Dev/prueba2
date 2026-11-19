@@ -21,9 +21,6 @@
     },
     "api/diagnostico-ia.js": {
       "maxDuration": 60
-    },
-    "api/leer.js": {
-      "maxDuration": 60
     }
   }
 }
