@@ -221,3 +221,28 @@ h1{font-size:30px}h2{font-size:24px}h3{font-size:18px}
 .var-enun{font:600 19px var(--font-display);margin:4px 0 10px;overflow-wrap:anywhere}
 .var-steps{margin:10px 0 0;padding-left:20px;display:grid;gap:6px;font-size:14.5px;color:var(--text)}
 .var-result{margin-top:12px;font:700 17px var(--font-display);color:var(--success);border-left:3px solid var(--success);background:var(--success-bg);border-radius:0 var(--r-m) var(--r-m) 0;padding:8px 14px}
+
+/* ---- matemáticas bonitas (mismo estilo que el Dojo; las genera js/math.js) ---- */
+:root{ --font-math:'Literata',Georgia,serif; --exp-color:#ED7FAE; --func-color:#7FD88F; }
+:root[data-theme="light"]{ --exp-color:#B2386F; --func-color:#2A7F43; }
+.math,.tok-num,.tok-var,.tok-func,.sqrt,.frac{ font-family:var(--font-math); }
+.math{ letter-spacing:.01em; }
+.tok-num{ color:var(--amber); font-weight:600; }
+.tok-var{ color:var(--accent); font-weight:600; font-style:italic; }
+.tok-exp{ color:var(--exp-color); font-weight:700; font-size:.78em; }
+.tok-exp *{ color:inherit; font-size:1em; }
+.tok-func{ color:var(--func-color); font-weight:600; font-style:normal; }
+.tok-op{ color:var(--text-dim); }
+.tok-prime{ color:var(--accent); }
+.tok-eq{ margin:0 .25em; }
+sup.tok-exp{ top:-.6em; }
+.frac{ display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 .22em; line-height:1.3; font-style:normal; }
+.frac > .num{ padding:0 .3em .12em; border-bottom:.09em solid var(--text-dim); }
+.frac > .den{ padding:.12em .3em 0; }
+.tok-exp .frac{ font-size:.8em; margin:0 .1em; }
+.sqrt{ display:inline-flex; align-items:stretch; }
+.sqrt-sign{ line-height:1; }
+.sqrt-body{ border-top:.09em solid var(--text-dim); padding:0 .15em; margin-top:.15em; }
+.var-enun .math{ font-size:1.25em; }
+.var-steps .math{ font-size:1.1em; }
+.var-result .math{ font-size:1.2em; }

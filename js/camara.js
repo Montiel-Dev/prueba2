@@ -30,6 +30,15 @@ const State = {
   openIdx: new Set()   // índices de variantes con la solución abierta
 };
 
+// Fórmulas bonitas (fracciones apiladas, raíces, exponentes). Si algo falla, texto plano.
+function fmt(t){
+  try{
+    const x = String(t).replace(/sqrt\s*\(/gi, "√(").replace(/\*/g, "·").replace(/\bsin\b/g, "sen");
+    return `<span class="math">${colorMath(x)}</span>`;
+  }
+  catch(e){ return esc(t); }
+}
+
 const NIVEL_LABEL = { 1: "Básico", 2: "Intermedio", 3: "Avanzado" };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -283,17 +292,17 @@ function screenResult(){
   return `
   <div class="hero"><div class="eyebrow">${esc(d.tema || "Derivadas")} · Nivel ${esc(nivel)}</div>
     <h1>Variantes para practicar</h1>
-    <p class="mu">Problema original que leí en tu foto: <em>${esc(d.transcripcion || "—")}</em></p>
+    <p class="mu">Problema original que leí en tu foto: <em>${fmt(d.transcripcion || "—")}</em></p>
   </div>
   <div class="var-list">
     ${d.variantes.map((v, i) => `
       <section class="card var-card">
         <div class="eyebrow">Variante ${i + 1}</div>
-        <p class="var-enun">${esc(v.enunciado)}</p>
+        <p class="var-enun">${fmt(v.enunciado)}</p>
         <button type="button" class="lnk var-toggle" data-i="${i}">${State.openIdx.has(i) ? "Ocultar solución" : "Ver solución paso a paso"}</button>
         ${State.openIdx.has(i) ? `
-          <ol class="var-steps">${v.pasos.map(p => `<li>${esc(p)}</li>`).join("")}</ol>
-          <div class="var-result">${esc(v.resultado)}</div>
+          <ol class="var-steps">${v.pasos.map(p => `<li>${fmt(p)}</li>`).join("")}</ol>
+          <div class="var-result">${fmt(v.resultado)}</div>
         ` : ""}
       </section>`).join("")}
   </div>
