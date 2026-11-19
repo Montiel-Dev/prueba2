@@ -1,100 +1,74 @@
 /* POST /api/variantes
-   Recibe la foto de un problema de derivadas y devuelve N "variantes":
-   el mismo tipo de problema (misma técnica, dificultad parecida) pero
-   con números/funciones distintos, cada una con solución paso a paso.
-   Usa la API de Google Gemini (tiene nivel gratis, sin tarjeta) —
-   necesita la variable de entorno GEMINI_API_KEY (ver README y .env.example).
+   Paso 2 del Escáner: recibe el TEXTO del problema (el que leyó /api/leer,
+   corregido o no por el alumno, o escrito a mano) y devuelve N variantes:
+   mismo tema y técnica, dificultad parecida, otros números, cada una con
+   solución paso a paso. NO usa imagen -> es mucho más rápido y lo puede
+   resolver cualquier proveedor de IA (ver lib/ai.js).
+   Body: { texto, count }
 
-   NOTA: esta ruta todavía es de acceso LIBRE a propósito (no se pidió
-   hacerla Pro todavía). Para volverla parte de Dojo Pro más adelante,
-   el lugar natural es aquí: antes de llamar a la IA, exigir algo que
-   pruebe que Pay.isPro() es cierto en el cliente (hoy ese estado solo
-   vive en localStorage del navegador, así que primero habría que
-   mandar el comprobante de pago y validarlo igual que en
-   lib/mp.js -> assertTestSeller / verify-payment). */
+   NOTA: sigue siendo de acceso LIBRE a propósito. Para volverla Pro más
+   adelante, validar aquí el comprobante de pago antes de llamar a la IA
+   (ver lib/mp.js -> assertTestSeller / verify-payment). */
 
-const { send, httpError, jsonBody, askWithImage } = require("../lib/ai");
+const { send, httpError, jsonBody, run } = require("../lib/ai");
 
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024; // tras decodificar el base64
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+const SYSTEM = `Eres un profesor de cálculo diferencial claro y paciente, de bachillerato mexicano.
+Recibes el texto de UN problema de derivadas. Haz esto:
 
-const SYSTEM = `Eres un profesor de cálculo diferencial muy claro y paciente, de bachillerato
-mexicano. Te muestran la foto de UN problema de derivadas (impreso o escrito a mano, resuelto
-o sin resolver). Haz esto, en orden:
+1. Identifica el tema ("regla de la potencia", "producto y cociente", "regla de la cadena",
+   "trigonométricas", "exponenciales y logarítmicas", "implícitas", "orden superior") y la
+   dificultad (1 = básico, 2 = intermedio, 3 = avanzado).
+2. Genera exactamente N variantes NUEVAS y DISTINTAS entre sí: mismo tema, misma técnica y
+   dificultad parecida, con números y/o funciones distintos (no copies el original). Deben
+   resolverse con los mismos pasos.
+3. Para cada variante da la solución paso a paso en español sencillo: entre 3 y 5 pasos, cada
+   uno de una sola línea (máx. ~25 palabras), y el resultado final ya simplificado.
+   REVISA que cada derivada esté correcta antes de responder.
 
-1. Lee la foto y transcribe el problema tal cual está (la función o expresión a derivar, y qué
-   piden exactamente: f'(x), dy/dx, derivada implícita, segunda derivada, evaluar en un punto, etc.).
-   Si la foto no trae un problema de derivadas legible, responde el JSON de error de abajo.
-2. Identifica el tema (por ejemplo: "regla de la potencia", "producto y cociente", "regla de la
-   cadena", "trigonométricas", "exponenciales y logarítmicas", "implícitas", "orden superior") y
-   el nivel de dificultad (1 = básico, 2 = intermedio, 3 = avanzado), según el problema original.
-3. Genera exactamente N variantes NUEVAS y DISTINTAS entre sí: mismo tema, misma técnica y
-   misma dificultad aproximada que el original, pero con números y/o funciones distintos (nunca
-   copies el problema original ni repitas una variante). Deben resolverse con los mismos pasos.
-4. Para cada variante da la solución completa, paso a paso, en español sencillo (cada elemento
-   de "pasos" es UN paso, breve y claro, como se lo explicarías a un estudiante), y el resultado
-   final ya simplificado. Sé CONCISO para responder rápido: entre 3 y 5 pasos por variante, cada
-   paso de una sola línea (máximo ~25 palabras), sin introducciones ni repetir el enunciado.
-
-Responde ÚNICAMENTE con JSON válido (nada de texto antes, después, ni \`\`\`), con esta forma exacta.
-
-Si SÍ reconoces un problema de derivadas en la foto:
+Escribe las fórmulas en texto plano (x^2, sqrt(x), sen(x), e^(2x), ln(x)).
+Responde ÚNICAMENTE con JSON válido, con esta forma exacta:
 {
-  "ok": true,
-  "transcripcion": "f(x) = ... (o como esté planteado)",
-  "tema": "nombre corto del tema",
+  "tema": "nombre corto",
   "nivel": 1,
   "variantes": [
     { "enunciado": "Deriva: f(x) = ...", "pasos": ["paso 1...", "paso 2..."], "resultado": "f'(x) = ..." }
   ]
+}`;
+
+function validate(j){
+  if(!Array.isArray(j.variantes) || !j.variantes.length) throw new Error("sin variantes");
+  j.variantes.forEach(v => {
+    if(!v || !String(v.enunciado || "").trim() || !Array.isArray(v.pasos) || !v.pasos.length) throw new Error("variante incompleta");
+  });
 }
 
-Si NO reconoces un problema de derivadas (foto borrosa, de otro tema, vacía, etc.):
-{ "ok": false, "motivo": "una frase corta y amable explicando qué pasó" }`;
-
 module.exports = async (req, res) => {
-  if(req.method !== "POST") return send(res, 405, { ok:false, error: "Método no permitido" });
+  if(req.method !== "POST") return send(res, 405, { ok: false, error: "Método no permitido" });
   try{
     const data = jsonBody(req);
-    const { image, mime } = data;
     const count = Math.min(6, Math.max(2, parseInt(data.count, 10) || 4));
+    const texto = String(data.texto || "").trim().slice(0, 500);
+    if(texto.length < 3) throw httpError(400, "Escribe o toma una foto del problema primero.");
 
-    if(!image || typeof image !== "string") throw httpError(400, "Falta la imagen.");
-    if(!mime || !ALLOWED_MIME.has(mime)) throw httpError(400, "Formato de imagen no soportado.");
-
-    const base64 = image.includes(",") ? image.split(",").pop() : image;
-    const approxBytes = base64.length * 0.75;
-    if(approxBytes > MAX_IMAGE_BYTES){
-      throw httpError(413, "La foto pesa demasiado. Intenta de nuevo (acércate un poco más o con mejor luz).");
-    }
-
-    const parsed = await askWithImage({
-      system: SYSTEM,
-      imageBase64: base64,
-      imageMime: mime,
-      userText: `Genera exactamente ${count} variantes.`
+    const { json, meta } = await run({
+      vision: false, system: SYSTEM,
+      user: `Problema: ${texto}\n\nGenera exactamente ${count} variantes.`,
+      maxTokens: 3000, totalMs: 50000, validate
     });
-
-    if(parsed.ok === false){
-      return send(res, 200, { ok:false, motivo: parsed.motivo || "No se reconoció un problema de derivadas en la foto." });
-    }
-    if(!parsed.ok || !Array.isArray(parsed.variantes) || !parsed.variantes.length){
-      throw httpError(502, "La IA no devolvió variantes válidas. Intenta de nuevo.");
-    }
 
     send(res, 200, {
       ok: true,
-      debug: parsed._meta || null, // tiempos/tokens; se ve en la consola del navegador
-      transcripcion: String(parsed.transcripcion || ""),
-      tema: String(parsed.tema || ""),
-      nivel: Number(parsed.nivel) || 1,
-      variantes: parsed.variantes.slice(0, count).map(v => ({
-        enunciado: String(v.enunciado || ""),
-        pasos: Array.isArray(v.pasos) ? v.pasos.map(String) : [],
+      debug: meta,
+      transcripcion: texto,
+      tema: String(json.tema || ""),
+      nivel: Number(json.nivel) || 1,
+      variantes: json.variantes.slice(0, count).map(v => ({
+        enunciado: String(v.enunciado),
+        pasos: v.pasos.map(String),
         resultado: String(v.resultado || "")
       }))
     });
   }catch(e){
-    send(res, e.status || 500, { ok:false, error: e.message, detalle: (e.extra && e.extra.detalle) || "", debug: e.extra || null });
+    send(res, e.status || 500, { ok: false, error: e.message, detalle: (e.extra && e.extra.detalle) || "" });
   }
 };

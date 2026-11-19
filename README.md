@@ -126,7 +126,7 @@ derivadas-dojo/
 ├─ js/camara.js         captura/compresión de la foto, llamada a /api/variantes y sus pantallas
 ├─ api/                 funciones de servidor (Vercel): crear/verificar pago y generar variantes
 ├─ lib/mp.js            helpers de Mercado Pago + candado de "solo cuentas de prueba"
-├─ lib/ai.js            helpers para hablar con la API de Gemini (Escáner de problemas)
+├─ lib/ai.js            capa de IA multi-proveedor (Escáner de problemas)
 ├─ vercel.json          configuración de publicación
 └─ favicon.svg
 ```
@@ -271,71 +271,51 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
   `localStorage.removeItem("derivadas-dojo-pro-v1")`.
 - Agregar un tipo de ejercicio: añade `{level, name, fn(){ return {q, ok, bad:[3 errores], why} }}` a `GENS`.
 
-## Escáner de problemas (cámara + IA) — nuevo
+## Escáner de problemas (cámara + IA) — v3 multi-proveedor
 
-`camara.html` (enlazado desde una tarjeta en la pantalla principal, "📷 Escáner de problemas").
-El alumno toma una foto a un problema de derivadas (o sube una que ya tenga), y la app:
+`camara.html` (tarjeta "📷 Escáner de problemas" en la pantalla principal). El alumno toma o sube una foto
+(o **escribe el problema a mano**) y la app genera variantes del mismo tema y dificultad, con solución paso a paso.
 
-1. Comprime la foto en el propio navegador (`js/camara.js`, canvas a ≤1400px, JPEG) antes de enviarla.
-2. La manda a `api/variantes.js`, que llama a la API de **Google Gemini** con la imagen.
-3. La IA transcribe el problema, identifica tema y dificultad, y genera 3/4/6 **variantes**: mismo
-   tema y técnica, misma dificultad aproximada, pero con números/funciones distintos — cada una con
-   su **solución paso a paso** y resultado final.
-4. Si la foto no trae un problema de derivadas legible, se avisa y se puede intentar con otra.
+### Cómo funciona ahora (y por qué ya no se cuelga)
 
-¿Por qué Gemini y no otra IA? Tiene un **nivel gratis real, sin pedir tarjeta**. Tiene límites de
-cuántas fotos por minuto/día se pueden analizar gratis; si se llegan a pasar, la API simplemente
-contesta "espera un poco" (error 429) y vuelve a funcionar sola, gratis, en la siguiente ventana —
-no hay que pagar nada ni configurar nada para que se recupere.
+El error `504 en 30 s → 504 en 25 s` pasaba porque todo dependía de **una sola llamada pesada a Gemini**
+(leer foto + inventar variantes + escribir soluciones) y el "respaldo" era otro modelo **del mismo proveedor**.
+Ahora son **dos pasos pequeños** y **varios proveedores**:
 
-**Esta función es gratis por ahora, a propósito** (no está detrás de Dojo Pro). El código deja listo
-dónde activarlo como Pro más adelante:
+1. `api/leer.js` — foto → **texto** del problema (salida cortísima, es el único paso con visión).
+2. El alumno ve el texto en una caja y lo **puede corregir** (exponentes, signos…).
+3. `api/variantes.js` — texto → N variantes (**sin imagen**, mucho más rápido).
 
-- `js/ui.js`: la tarjeta "Escáner de problemas" en la pantalla principal (justo antes de la tarjeta de
-  Dojo Pro) — ahí se podría condicionar a `Pay.isPro()` igual que el Arcade.
-- `api/variantes.js`: trae una nota al inicio de qué validar en el servidor antes de llamar a la IA,
-  si se quiere evitar que alguien use el endpoint directamente sin haber pagado (hoy, igual que el
-  resto del Arcade, el estado "Pro" solo vive en `localStorage` del navegador — una protección real
-  necesitaría mandar y verificar el comprobante de pago, como ya hace `lib/mp.js`).
+Cada paso se ejecuta con **carrera escalonada entre proveedores** (`lib/ai.js`): se lanza el primero; si no contesta
+en 9 s o falla, se lanza el siguiente **sin cancelar al primero**; gana el primero que devuelva un JSON válido.
+Proveedores soportados (solo se usan los que tengan API key): **Groq** (gratis, muy rápido, visión), **Gemini**,
+**Mistral**, **OpenRouter** y **Anthropic (Claude)**.
+Si la foto no se puede leer con ninguno, la app **no se bloquea**: deja escribir el problema y sigue.
 
-### Configuración (una sola vez)
+### Configuración
 
-1. Crea una API key **gratis** en [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-   (inicia sesión con una cuenta de Google; no pide tarjeta).
-2. Pégala como variable de entorno `GEMINI_API_KEY`:
-   - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
-   - Vercel: Settings → Environment Variables → `GEMINI_API_KEY` → después hay que hacer
-     **Redeploy** (las variables nuevas no aplican al deploy que ya estaba publicado).
-3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-3.8-flash`).
+1. Consigue al menos una key (mejor 2: si una está lenta o en límite, usa la otra):
+   - **Groq** (recomendada, gratis sin tarjeta): console.groq.com/keys → `GROQ_API_KEY`
+   - **Gemini** (gratis): aistudio.google.com/apikey → `GEMINI_API_KEY`
+   - Opcionales: `MISTRAL_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY` (la mejor para letra manuscrita, de pago).
+2. Local: cópialas en `.env.local` (ver `.env.example`) y corre `vercel dev`.
+   Vercel: Settings → Environment Variables, y después **Redeploy**.
+3. Abre `https://TU-SITIO.vercel.app/api/diagnostico-ia`: prueba cada proveedor con texto y con imagen y muestra
+   cuánto tarda y si funciona. Los nombres de modelo se pueden cambiar con variables (`GROQ_VISION_MODEL`, etc.)
+   si Google/Groq retiran alguno ("modelo no encontrado").
 
-Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
-abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
-
-Si en algún momento quieres volver a usar Claude (Anthropic) en vez de Gemini —por ejemplo porque
-ya tienes cuenta ahí, o porque quieres mejor calidad en el reconocimiento de letra manuscrita— el
-único archivo que hay que tocar es `lib/ai.js`: ahí vive toda la llamada a la IA.
-
-### Velocidad del Escáner (versión optimizada)
-
-Si una foto tardaba minutos, la causa más probable era el "thinking" interno del modelo. Ahora:
-
-- `lib/ai.js` lo apaga/minimiza por defecto (`GEMINI_THINKING=off`; usa `default` para volver al comportamiento anterior).
-- **Modelo de respaldo**: si el principal tarda más de 30 s, da 429 o falla, se prueba solo `gemini-flash-latest` (`GEMINI_FALLBACK_MODEL`). Las cuotas gratis son por modelo.
-- `/api/diagnostico-ia` (abrir en el navegador) mide cuánto tarda cada modelo con un mensaje mínimo.
-- Hay timeout de 55 s (`GEMINI_TIMEOUT_MS`) y `vercel.json` da 60 s de `maxDuration` a `api/variantes.js`.
-- Reintenta una vez ante errores 500/503 de Google y, si el modelo rechaza la config de thinking, reintenta sin ella.
-- Mide todo: en **Vercel → Logs** aparece `[gemini] {...ms, promptTokens, outputTokens, thoughtsTokens}` y en la
-  consola del navegador (F12) `[escáner] total ... | servidor: ...`. Si `thoughtsTokens` sigue alto o `ms` sigue
-  siendo de minutos, el cuello de botella es la cuota gratis o el modelo, no el código.
+Necesita servidor (Vercel o `vercel dev`); no funciona abriendo `index.html` con doble clic.
+Sigue siendo **gratis para todos a propósito**; `api/variantes.js` trae la nota de dónde validar el pago si se vuelve Pro.
 
 ### Archivos
 
 | Archivo | Qué es |
 |---|---|
-| `camara.html` | Página del Escáner (captura/sube foto, elige cuántas variantes, muestra resultados). |
-| `js/camara.js` | Captura/compresión de la foto, llamada a `/api/variantes` y render de las pantallas. |
-| `api/variantes.js` | Endpoint serverless: recibe la foto, llama a la IA y valida/formatea su respuesta. |
-| `lib/ai.js` | Helper compartido para hablar con la API de Gemini (igual rol que `lib/mp.js` para pagos). |
+| `camara.html` / `js/camara.js` | Pantallas: foto → lectura → texto editable → variantes. Respaldo por texto si falla la visión. |
+| `api/leer.js` | Foto → texto del problema (visión). |
+| `api/variantes.js` | Texto → variantes con solución (sin imagen). |
+| `api/diagnostico-ia.js` | Mide cada proveedor configurado. |
+| `lib/ai.js` | Adaptadores (Groq/Gemini/Mistral/OpenRouter/Anthropic), carrera escalonada y JSON tolerante. |
 
 ## Planes de estudio por institución
 
