@@ -306,7 +306,7 @@ dónde activarlo como Pro más adelante:
    - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
    - Vercel: Settings → Environment Variables → `GEMINI_API_KEY` → después hay que hacer
      **Redeploy** (las variables nuevas no aplican al deploy que ya estaba publicado).
-3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-2.5-flash`).
+3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-flash-latest`, que siempre apunta al Flash vigente).
 
 Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
 abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
