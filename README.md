@@ -219,3 +219,23 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
 - Para reiniciar y volver a probar el pago: en la consola del navegador
   `localStorage.removeItem("derivadas-dojo-pro-v1")`.
 - Agregar un tipo de ejercicio: añade `{level, name, fn(){ return {q, ok, bad:[3 errores], why} }}` a `GENS`.
+
+## Planes de estudio por institución
+
+Al abrir la app por primera vez pregunta la institución (COBAEM, DGETI, TecNM, UAEM u "Otra / explorar") y,
+si hace falta, el estado y el nivel. Con eso reordena el menú en las **unidades de tu plan**, en su orden oficial.
+Se puede cambiar después desde "Cambiar institución" en la pantalla principal. La elección vive en `localStorage` (`dojo-plan-v1`).
+
+Todo está en `js/plans.js`; los bloques de `data.js` no se tocaron:
+
+- `PLANS`: cada plan es una lista de unidades `{title, topics, blocks}`. `blocks` apunta a bloques existentes;
+  si está vacío, la unidad se muestra con sus temas y la etiqueta **pronto**. `extra:true` marca refuerzo fuera del programa.
+- `INSTITUTIONS`: preguntas de seguimiento y qué plan resuelve cada combinación (`verified:false` muestra el aviso de "programa base").
+
+| Plan | Fuente | Estado |
+|---|---|---|
+| `tecnm` | Temario Cálculo Diferencial TecNM (ISIC-2010-224) | Verificado |
+| `mccems` | Progresiones de Pensamiento Matemático III, MCCEMS 2023 (SEP) | Programa nacional; usado por COBAEM, DGETI y UAEM bachillerato |
+
+Pendiente: cargar el programa específico de cada COBAEM (Edomex/Morelos) y de la UAEM; basta con añadir un plan en `PLANS`
+y apuntarlo en `resolve()` de la institución. Para dar contenido a una unidad "pronto", crea el bloque en `data.js` y pon su id en `blocks`.

@@ -23,22 +23,24 @@ const UI = {
 
     const nav = document.getElementById("block-nav");
     nav.innerHTML = "";
-    BLOCKS.forEach(block=>{
-      const stats = Engine.blockPracticeStats(block.id);
-      const stars = Engine.blockStars(block.id);
-      const btn = document.createElement("button");
-      btn.className = "block-item" + (this._activeBlockId===block.id ? " active" : "");
-      btn.innerHTML = `
-        <div class="block-item-top">
-          <span class="block-item-title">${block.title}</span>
-          <span class="block-item-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>
-        </div>
-        <div class="block-item-bar"><div class="block-item-bar-fill" style="width:${stats.percent}%"></div></div>
-        <div class="block-item-sub">${stats.correct}/${stats.total} ejercicios dominados</div>
-      `;
-      btn.addEventListener("click", ()=> this.showBlockOverview(block.id));
-      nav.appendChild(btn);
-    });
+    const units = Plans.units();
+    if(!units){
+      BLOCKS.forEach(block=> nav.appendChild(this._blockBtn(block)));
+    }else{
+      units.forEach((u, i)=>{
+        const head = document.createElement("button");
+        head.className = "unit-head" + (this._activeUnit===i && !this._activeBlockId ? " active" : "") + (u.extra ? " extra" : "") + (u.blocks.length ? "" : " soon");
+        head.innerHTML = `<span class="unit-n">${u.extra ? "+" : i+1}</span><span class="unit-t">${u.title}</span>${u.blocks.length ? "" : '<span class="soon-tag">pronto</span>'}`;
+        head.addEventListener("click", ()=> this.showUnit(i));
+        nav.appendChild(head);
+        u.blocks.forEach(id=>{
+          const block = BLOCKS.find(b=>b.id===id);
+          if(block){ const btn = this._blockBtn(block); btn.classList.add("in-unit"); nav.appendChild(btn); }
+        });
+      });
+    }
+    const pl = document.getElementById("plan-chip");
+    if(pl) pl.textContent = Plans.label();
 
     document.getElementById("pro-badge").hidden = !Pay.isPro();
 
@@ -48,16 +50,82 @@ const UI = {
     reviewBtn.onclick = ()=> this.startSession("review", null);
   },
 
+  _blockBtn(block){
+    const stats = Engine.blockPracticeStats(block.id);
+    const stars = Engine.blockStars(block.id);
+    const btn = document.createElement("button");
+    btn.className = "block-item" + (this._activeBlockId===block.id ? " active" : "");
+    btn.innerHTML = `
+      <div class="block-item-top">
+        <span class="block-item-title">${block.title}</span>
+        <span class="block-item-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</span>
+      </div>
+      <div class="block-item-bar"><div class="block-item-bar-fill" style="width:${stats.percent}%"></div></div>
+      <div class="block-item-sub">${stats.correct}/${stats.total} ejercicios dominados</div>
+    `;
+    btn.addEventListener("click", ()=> this.showBlockOverview(block.id));
+    return btn;
+  },
+
+  // ---------------- unidad del plan ----------------
+  showUnit(i){
+    const u = Plans.units()[i], p = Plans.plan();
+    document.body.classList.remove("in-session");
+    this._activeBlockId = null; this._activeUnit = i;
+    this.renderSidebar();
+    $main.innerHTML = `
+      <div class="eyebrow">${u.extra ? "Extensión" : "Unidad " + (i+1)} · ${Plans.label()}</div>
+      <h1>${u.title}</h1>
+      <div class="lesson-card">
+        <h2>Temas de tu programa</h2>
+        <ul class="topic-list">${u.topics.map(t=>`<li>${t}</li>`).join("")}</ul>
+      </div>
+      ${u.blocks.length ? `<div class="lesson-card"><h2>Practica este tema</h2>
+        <div class="action-row" id="unit-blocks"></div></div>`
+      : `<div class="lesson-card soon-card"><h2>Próximamente</h2>
+        <p class="lead">Esta unidad está en tu plan de estudios, pero sus lecciones y ejercicios aún no están en el Dojo.
+        Mientras tanto puedes seguir con las unidades que ya están disponibles.</p>
+        <div class="action-row"><button class="btn btn-primary" id="btn-next-unit">Ir a lo que ya está disponible</button></div></div>`}
+      <p class="pay-fine">Fuente del plan: ${p.source}</p>`;
+    if(u.blocks.length){
+      const box = document.getElementById("unit-blocks");
+      u.blocks.forEach(id=>{ const b = BLOCKS.find(x=>x.id===id); const el = document.createElement("button");
+        el.className = "btn btn-primary"; el.textContent = b.title; el.onclick = ()=> this.showBlockOverview(id); box.appendChild(el); });
+    }else{
+      document.getElementById("btn-next-unit").onclick = ()=>{
+        const k = Plans.units().findIndex(x=>x.blocks.length); k>=0 ? this.showUnit(k) : this.showHome();
+      };
+    }
+  },
+
+  _planCard(){
+    const u = Plans.units();
+    if(!u) return `<div class="lesson-card plan-card"><div class="pay-head"><h2>Recorrido libre</h2></div>
+      <p class="lead">Estás viendo todos los bloques. Elige tu institución para ver los temas en el orden de tu plan.</p>
+      <div class="action-row"><button class="btn btn-ghost" id="btn-plan">Elegir institución</button></div></div>`;
+    return `<div class="lesson-card plan-card">
+      <div class="pay-head"><h2>Tu plan: ${Plans.label()}</h2><span class="sim-tag">${Plans.plan().name}</span></div>
+      <ol class="road">${u.map((x,i)=>`<li class="${x.blocks.length ? "" : "soon"}${x.extra ? " x" : ""}"><button type="button" data-unit="${i}">${x.title}</button></li>`).join("")}</ol>
+      <div class="action-row"><button class="btn btn-ghost" id="btn-plan">Cambiar institución</button></div>
+      <p class="pay-fine">${Plans.sel && !Plans.sel.verified ? "Programa base del nivel: confirma con tu docente los temas de tu plantel. " : ""}Fuente: ${Plans.plan().source}</p></div>`;
+  },
+  _bindPlan(){
+    document.querySelectorAll("[data-unit]").forEach(b=> b.onclick = ()=> this.showUnit(+b.dataset.unit));
+    const c = document.getElementById("btn-plan");
+    if(c) c.onclick = ()=> Plans.openWizard(()=>{ this._activeUnit = null; this.renderSidebar(); this.showHome(); }, true);
+  },
+
   // ---------------- home ----------------
   showHome(){
     document.body.classList.remove("in-session");
     this._activeBlockId = null;
     this.renderSidebar();
     const overall = Engine.overallPercent();
-    let nextBlock = BLOCKS.find(b=>{
+    const order = Plans.blockOrder().map(id=>BLOCKS.find(b=>b.id===id)).filter(Boolean);
+    let nextBlock = order.find(b=>{
       const s = Engine.blockPracticeStats(b.id);
       return s.correct < s.total;
-    }) || BLOCKS[0];
+    }) || order[0];
 
     $main.innerHTML = `
       <div class="home-hero">
@@ -70,6 +138,7 @@ const UI = {
           <button class="btn btn-primary" id="btn-continue">Continuar: ${nextBlock.title}</button>
         </div>
       </div>
+      ${this._planCard()}
       <div class="lesson-card">
         <div class="pay-head"><h2>Arcade</h2>${Pay.isPro() ? '<span class="sim-tag" style="color:var(--success);border-color:var(--success)">DESBLOQUEADO</span>' : '<span class="sim-tag">PRO</span>'}</div>
         <p class="lead">Dos módulos para entrenar al máximo: <strong>Modo Vidas</strong> (ejercicios ilimitados al azar,
@@ -100,6 +169,7 @@ const UI = {
     `;
     document.getElementById("btn-continue").addEventListener("click", ()=> this.showBlockOverview(nextBlock.id));
     Pay.bind();
+    this._bindPlan();
   },
 
   // Aviso al volver del checkout de Mercado Pago

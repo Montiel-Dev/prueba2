@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", ()=>{
   Engine.load();
+  Plans.load();
   UI.init();
+  if(!Plans.sel) Plans.openWizard(()=>{ UI.renderSidebar(); UI.showHome(); });
   Pay.handleReturn().then(r=>{
     if(!r) return;
     UI.showPayResult(r);
