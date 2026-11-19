@@ -11,6 +11,7 @@
    (ver lib/mp.js -> assertTestSeller / verify-payment). */
 
 const { send, httpError, jsonBody, run } = require("../lib/ai");
+const { guard } = require("../lib/pro");
 
 const SYSTEM = `Eres un profesor de cálculo diferencial claro y paciente, de bachillerato mexicano.
 Recibes el texto de UN problema de derivadas. Haz esto:
@@ -45,6 +46,7 @@ function validate(j){
 module.exports = async (req, res) => {
   if(req.method !== "POST") return send(res, 405, { ok: false, error: "Método no permitido" });
   try{
+    guard(req);
     const data = jsonBody(req);
     const count = Math.min(6, Math.max(2, parseInt(data.count, 10) || 4));
     const texto = String(data.texto || "").trim().slice(0, 500);
@@ -58,7 +60,7 @@ module.exports = async (req, res) => {
 
     send(res, 200, {
       ok: true,
-      debug: meta,
+      debug: process.env.AI_DEBUG === "1" ? meta : { ms: meta.ms },
       transcripcion: texto,
       tema: String(json.tema || ""),
       nivel: Number(json.nivel) || 1,
@@ -69,6 +71,6 @@ module.exports = async (req, res) => {
       }))
     });
   }catch(e){
-    send(res, e.status || 500, { ok: false, error: e.message, detalle: (e.extra && e.extra.detalle) || "" });
+    send(res, e.status || 500, { ok: false, error: e.message, detalle: (e.extra && e.extra.detalle) || "", pro: !!(e.extra && e.extra.pro) });
   }
 };

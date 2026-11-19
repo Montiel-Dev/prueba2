@@ -23,11 +23,13 @@ const State = {
   imageDataUrl: null,
   mime: "image/jpeg",
   count: 4,
+  needPro: false,
   data: null,          // respuesta de /api/variantes cuando ok:true
   errorMsg: "",
   detail: "",
   canRetry: true,
-  openIdx: new Set()   // índices de variantes con la solución abierta
+  openIdx: new Set(),  // índices de variantes con la solución abierta
+  busy: false          // evita doble clic / dos peticiones a la vez
 };
 
 // Fórmulas bonitas (fracciones apiladas, raíces, exponentes). Si algo falla, texto plano.
@@ -68,30 +70,38 @@ function fileToCompressedDataUrl(file){
     if(!file.type.startsWith("image/")) return reject(new Error("Ese archivo no es una imagen."));
     if(file.size > MAX_SOURCE_MB * 1024 * 1024) return reject(new Error(`La foto pesa más de ${MAX_SOURCE_MB} MB.`));
 
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("No se pudo leer la foto."));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("No se pudo abrir la foto."));
-      img.onload = () => {
-        let { width: w, height: h } = img;
+    // createObjectURL evita leer toda la foto original como base64 (lento y pesado en celulares).
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo abrir la foto. Si es formato HEIC, tómala de nuevo con la cámara o conviértela a JPG."));
+    };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try{
+        let { naturalWidth: w, naturalHeight: h } = img;
+        if(!w || !h) throw new Error("vacía");
         if(w > MAX_DIM || h > MAX_DIM){
           const scale = MAX_DIM / Math.max(w, h);
           w = Math.round(w * scale); h = Math.round(h * scale);
         }
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";            // PNG/WebP con transparencia salían NEGROS en JPEG y la IA no leía nada
+        ctx.fillRect(0, 0, w, h);
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL("image/jpeg", JPEG_Q));
-      };
-      img.src = reader.result;
+      }catch(e){ reject(new Error("No se pudo procesar la foto.")); }
     };
-    reader.readAsDataURL(file);
+    img.src = url;
   });
 }
 
 async function onFile(file){
-  if(!file) return;
+  if(!file || State.busy) return;
   try{
     State.imageDataUrl = await fileToCompressedDataUrl(file);
     State.mime = "image/jpeg";
@@ -123,8 +133,15 @@ async function postJson1(url, body, ms){
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try{
-    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-pro-token": (typeof Pay !== "undefined" && Pay.token()) || "" }, body: JSON.stringify(body), signal: ctrl.signal });
     const d = await r.json().catch(() => ({}));
+    if(!r.ok && !d.error && !d.motivo){
+      d.error = r.status === 413 ? "La foto pesa demasiado. Acércate un poco más o usa mejor luz."
+        : r.status === 504 ? "La IA tardó demasiado en responder."
+        : r.status === 404 ? "No se encontró el servicio del Escáner (/api). Revisa que el sitio esté desplegado en Vercel."
+        : "El servidor respondió con un error (" + r.status + ").";
+    }
+    if(r.status === 402){ try{ localStorage.removeItem(Pay.TOKEN_KEY); }catch(e){} }  // pase vencido o inválido: se pedirá uno nuevo
     return { ok: r.ok, status: r.status, d };
   }finally{ clearTimeout(timer); }
 }
@@ -141,17 +158,21 @@ function startTicker(){
 /* Paso 1: foto -> texto del problema. Si falla, NO se bloquea al alumno:
    pasa a la pantalla de texto para que lo escriba o lo corrija. */
 async function readPhoto(){
-  State.step = "reading"; State.readWarn = ""; State.detail = ""; State.texto = ""; render();
+  if(State.busy) return;
+  State.busy = true;
+  State.step = "reading"; State.readWarn = ""; State.detail = ""; State.needPro = false; State.texto = ""; render();
   const stop = startTicker();
   try{
     if(location.protocol === "file:") throw new Error("file");
     const { ok, d } = await postJson("/api/leer", { image: State.imageDataUrl, mime: State.mime }, CLIENT_TIMEOUT_MS);
     console.log("[escáner] leer:", d.debug || d);
     if(ok && d.ok && d.texto) State.texto = d.texto;
-    else { State.readWarn = d.motivo || d.error || "No pude leer la foto."; State.detail = d.detalle || ""; }
+    else { State.readWarn = d.motivo || d.error || "No pude leer la foto."; State.detail = d.detalle || ""; State.needPro = !!d.pro; }
   }catch(e){
-    State.readWarn = e && e.name === "AbortError" ? "La lectura de la foto tardó demasiado." : "No pude leer la foto.";
-  }finally{ stop(); }
+    State.readWarn = e && e.name === "AbortError" ? "La lectura de la foto tardó demasiado."
+      : (e && e.message === "file") ? "El Escáner necesita el sitio en un servidor (Vercel o `vercel dev`)."
+      : "No pude conectar con el servidor. Revisa tu conexión.";
+  }finally{ stop(); State.busy = false; }
   if(State.readWarn) State.readWarn += " Escribe el problema aquí abajo y sigue sin foto, o toma otra.";
   State.step = "preview";
   render();
@@ -159,12 +180,15 @@ async function readPhoto(){
 
 /* Paso 2: texto -> variantes (sin imagen, rápido). */
 async function generate(){
+  if(State.busy) return;
   const ta = document.getElementById("texto");
   if(ta) State.texto = ta.value.trim();
   if(State.texto.length < 3){ State.readWarn = "Escribe el problema primero."; return render(); }
+  State.busy = true;
   State.step = "loading"; State.detail = ""; render();
 
   if(location.protocol === "file:"){
+    State.busy = false;
     State.step = "error"; State.canRetry = true;
     State.errorMsg = "Esta función necesita el sitio corriendo en un servidor (Vercel o `vercel dev`), no abriendo el archivo con doble clic.";
     return render();
@@ -177,7 +201,7 @@ async function generate(){
     console.log("[escáner] variantes", Math.round((Date.now() - t0) / 1000) + " s", "| servidor:", d.debug || d);
 
     if(!ok || d.error){
-      State.step = "preview"; State.readWarn = (d.error || "No se pudieron generar las variantes.") + " Puedes volver a intentarlo.";
+      State.step = "preview"; State.needPro = !!d.pro; State.readWarn = d.error ? (d.pro ? d.error : d.error + " Puedes volver a intentarlo.") : "No se pudieron generar las variantes.";
       State.detail = d.detalle || "";
       return render();
     }
@@ -189,7 +213,7 @@ async function generate(){
     State.readWarn = e && e.name === "AbortError"
       ? "La IA tardó demasiado. Vuelve a intentarlo (con menos variantes suele ir más rápido)."
       : "No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.";
-  }finally{ stop(); }
+  }finally{ stop(); State.busy = false; }
   render();
 }
 
@@ -237,7 +261,7 @@ function screenPreview(){
   <div class="hero"><div class="eyebrow">Paso 2</div><h1>Revisa el problema</h1></div>
   ${State.imageDataUrl ? `<section class="card"><img class="shot-preview" src="${State.imageDataUrl}" alt="Foto del problema"></section>` : ""}
   <section class="card">
-    ${State.readWarn ? `<div class="alert warn">${esc(State.readWarn)}${State.detail ? `<div class="mu" style="font-size:12px;margin-top:6px">Detalle técnico: ${esc(State.detail)}</div>` : ""}</div>` : ""}
+    ${State.readWarn ? `<div class="alert warn">${esc(State.readWarn)}${State.needPro ? ` <a href="checkout.html?next=camara.html" style="color:inherit;font-weight:700">Activar Pro</a>` : ""}${State.detail ? `<div class="mu" style="font-size:12px;margin-top:6px">Detalle técnico: ${esc(State.detail)}</div>` : ""}</div>` : ""}
     <h3>Esto es lo que debo resolver</h3>
     <p class="mu" style="margin:0 0 8px">Corrígelo si la lectura de la foto no quedó exacta (p. ej. exponentes o signos).</p>
     <textarea id="texto" rows="3" maxlength="500" placeholder="Ej.: Deriva: f(x) = (3x^2 + 1)^4"

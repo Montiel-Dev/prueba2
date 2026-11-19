@@ -5,6 +5,7 @@
    Respuesta: { ok:true, texto } | { ok:false, motivo } | { ok:false, error, detalle } */
 
 const { send, httpError, jsonBody, run } = require("../lib/ai");
+const { guard } = require("../lib/pro");
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // tras decodificar (Groq acepta hasta ~4 MB en base64)
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -22,6 +23,7 @@ Si no (borroso, otro tema, vacío): { "ok": false, "motivo": "una frase corta y 
 module.exports = async (req, res) => {
   if(req.method !== "POST") return send(res, 405, { ok: false, error: "Método no permitido" });
   try{
+    guard(req);
     const { image, mime } = jsonBody(req);
     if(!image || typeof image !== "string") throw httpError(400, "Falta la imagen.");
     if(!mime || !ALLOWED_MIME.has(mime)) throw httpError(400, "Formato de imagen no soportado.");
@@ -37,8 +39,8 @@ module.exports = async (req, res) => {
     if(json.ok === false){
       return send(res, 200, { ok: false, motivo: String(json.motivo || "No se reconoció un problema de derivadas en la foto.") });
     }
-    send(res, 200, { ok: true, texto: String(json.texto).trim().slice(0, 500), debug: meta });
+    send(res, 200, { ok: true, texto: String(json.texto).trim().slice(0, 500), debug: process.env.AI_DEBUG === "1" ? meta : { ms: meta.ms } });
   }catch(e){
-    send(res, e.status || 500, { ok: false, error: e.message, detalle: (e.extra && e.extra.detalle) || "" });
+    send(res, e.status || 500, { ok: false, error: e.message, detalle: (e.extra && e.extra.detalle) || "", pro: !!(e.extra && e.extra.pro) });
   }
 };

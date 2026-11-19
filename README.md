@@ -1,3 +1,27 @@
+# v6 — qué cambió y cómo publicarla
+
+**Variables en Vercel → Settings → Environment Variables (después, Redeploy):**
+
+| Variable | Valor | Para qué |
+|---|---|---|
+| `GROQ_API_KEY` y/o `GEMINI_API_KEY` | tu key | La IA del Escáner (pon al menos una; mejor dos) |
+| `PRO_SECRET` | texto largo aleatorio (≥ 16 caracteres) | "Sello" del pase Pro |
+| `PRO_FREE_TEST` | `1` | SOLO pruebas: el pase se entrega gratis. Quítala para exigir pago verificado |
+| `PRO_REQUIRED` | `1` | El Escáner exige Pro. Sin ella, el Escáner es gratis para todos |
+| `DIAG_KEY` | texto ≥ 8 caracteres | Abre `/api/diagnostico-ia?clave=TU_DIAG_KEY` (sin ella está desactivado) |
+
+**Arreglos de v6 sobre v5:** modelos de Groq vigentes (los anteriores fueron retirados), errores que dicen la causa real
+(key inválida / modelo retirado / IA saturada / lenta), `/api/diagnostico-ia` protegido, límite de peticiones también en
+`/api/pro-activar`, cabeceras de seguridad (CSP, X-Frame-Options…), datos del recibo escapados, el checkout espera el pase antes
+de mostrar "Continuar", fotos PNG transparentes con fondo blanco y compresión más rápida, protección contra doble clic.
+
+**Limitaciones conocidas (dilas en el hackatón):** el pase es compartible (no hay cuentas); el límite de peticiones es "mejor
+esfuerzo" por instancia; un mismo pago aprobado puede canjearse más de una vez (no hay base de datos de pagos usados); y los
+beneficios del Arcade Pro (vidas infinitas, mini-examen) siguen decidiéndose en el navegador. Con `PRO_FREE_TEST=1` el pago es
+decorativo. Pruebas: `node --test` (22 pruebas).
+
+---
+
 # Derivadas Dojo
 
 Una app tipo "Duolingo de derivadas" para practicar cálculo diferencial
