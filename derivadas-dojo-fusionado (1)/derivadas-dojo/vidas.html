@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modo Vidas — Derivadas Dojo</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/arcade.css">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="toast" role="alert"></div>
+<script src="js/pay.js"></script>
+<script src="js/arcade-core.js"></script>
+<script>
+/* Modo Vidas: ejercicios ilimitados al azar + vidas estilo Duolingo.
+   Gratis: 5 vidas que se recuperan con el tiempo. Pro: vidas infinitas. */
+{
+
+const S = Arcade.S(), C = Arcade.CFG;
+const LEVELS = ['', 'Básico', 'Intermedio', 'Avanzado'];
+let V = { view:'intro' };
+let lostIdx = -1;
+
+const pro = ()=> Arcade.isPro();
+const bar = ()=> Arcade.topbar({
+  back:'arcade.html', backLabel:'Arcade', title:'Modo Vidas',
+  extra:`<span id="hearts">${Arcade.heartsHTML(lostIdx)}${S.lives<C.LIFE_MAX?` <small class="mu" id="regen">+1 en ${Arcade.mmss(Arcade.nextIn())}</small>`:''}</span>`
+});
+
+const VIEWS = {
+  intro: ()=>`
+    <div class="card">
+      <div class="eyebrow">Ejercicios ilimitados</div>
+      <h1>Modo Vidas</h1>
+      <p class="mu">Derivadas nuevas cada vez, generadas al azar. ${pro()
+        ? '<b>Con Pro tienes vidas infinitas</b>: equivocarte no te detiene. Entre más racha, más difícil.'
+        : `Tienes <b>${C.LIFE_MAX} vidas</b>: cada error cuesta una y se recupera 1 cada ${C.REGEN_MS/60000} min. Entre más racha, más difícil.`}</p>
+      <div class="stat-grid" style="margin:14px 0">
+        <div class="stat"><b>${pro()?'∞':S.lives+'/'+C.LIFE_MAX}</b><span>Vidas</span></div>
+        <div class="stat"><b>${S.solved}</b><span>Resueltos</span></div>
+        <div class="stat"><b>${S.bestStreak}</b><span>Mejor racha</span></div>
+      </div>
+      <button class="btn lg" onclick="start()">${S.lives>0?'Empezar':'Ver estado de vidas'}</button>
+      ${pro()?'':`<p class="mu" style="font-size:14px;margin:14px 0 0">¿Sin límite de errores? <a href="#" onclick="Arcade.goPay();return false">Pásate a Pro</a> y juega con vidas infinitas.</p>`}
+    </div>`,
+
+  play: ()=>{ const e=V.ex; return `
+    <div class="card">
+      <div class="row"><span class="streak">🔥 Racha ${V.streak}</span><span class="chip">Nivel: ${LEVELS[Arcade.levelFor(V.streak)]}</span></div>
+      <div class="mu" style="margin-top:10px;font-size:13.5px">${Arcade.esc(e.topic)}</div>
+      <div class="mu">Calcula ${e.ask} para</div><div class="fx">f(x) = ${e.q}</div>
+      <div class="opts">${e.opts.map((o,i)=>`<button class="opt ${V.done?(o===e.ok?'ok':i===V.sel?'bad':''):''}" ${V.done?'disabled':''} onclick="pick(${i})"><span class="k">${i+1}</span>${o}</button>`).join('')}</div>
+      ${V.done?`<div class="fb ${V.right?'':'badt'}"><b>${V.right?`¡Correcto! +${C.XP_OK} puntos`:(pro()?'Incorrecto. Con Pro no pierdes vidas, ¡sigue!':'Incorrecto. Pierdes una vida.')}</b><p>${e.why}</p>${V.right?'':`<p>Respuesta correcta: <b>${e.ok}</b></p>`}</div>
+        <button class="btn" id="btn-next" onclick="next()">${!pro()&&S.lives<=0&&!V.right?'Continuar':'Siguiente'}</button>`:''}
+    </div>
+    <button class="lnk" onclick="exit()">Terminar sesión</button>`; },
+
+  nolives: ()=>`
+    <div class="card" style="text-align:center">
+      <div class="big" style="font-size:54px">💔</div>
+      <h2>Te quedaste sin vidas</h2>
+      <p class="mu">Resolviste <b>${V.session}</b> en esta sesión. Tu próxima vida llega en <b id="cd">${Arcade.mmss(Arcade.nextIn())}</b>.</p>
+      <p style="margin:14px 0 0">Con <b>Arcade Pro</b> tienes vidas infinitas y sigues practicando ahora mismo.</p>
+      <div class="gap" style="justify-content:center;margin-top:14px">
+        <button class="btn" onclick="Arcade.goPay()">Pasar a Pro · vidas infinitas</button>
+        <button class="btn gold" ${S.pts>=C.REFILL_COST?'':'disabled'} onclick="refill()">♥ Recuperar 1 vida · ${C.REFILL_COST} ◆</button>
+        </div>
+      <p class="fa" style="font-size:13px;margin-top:10px">Tienes ${S.pts} ◆${S.pts<C.REFILL_COST?` · te faltan ${C.REFILL_COST-S.pts}`:''}</p>
+      <button class="lnk" onclick="exit()">Volver al Arcade</button>
+    </div>`,
+
+  end: ()=>`
+    <div class="card" style="text-align:center">
+      <div class="eyebrow">Sesión terminada</div>
+      <div class="big">${V.session}</div>
+      <p class="mu">ejercicios correctos · racha máxima ${V.maxStreak} · ${V.pts} puntos ganados</p>
+      <div class="gap" style="justify-content:center;margin-top:14px">
+        <button class="btn" onclick="start()">Otra sesión</button>
+        <a class="btn alt" href="arcade.html">Volver al Arcade</a>
+      </div>
+    </div>`
+};
+
+function render(){
+  document.getElementById('app').innerHTML = bar() + VIEWS[V.view]();
+  Arcade.themeBtn();
+  lostIdx = -1;
+}
+
+function newSession(){ V = { view:'play', streak:0, session:0, maxStreak:0, pts:0, topic:'' }; }
+function start(){
+  Arcade.tick();
+  if(!pro() && S.lives <= 0){ V = { view:'nolives', session:0 }; return render(); }
+  newSession(); V.ex = Arcade.nextExercise(0, ''); V.sel = null; V.done = false; render();
+}
+function pick(i){
+  if(V.done || V.view!=='play') return;
+  const e = V.ex; V.sel = i; V.done = true; V.right = e.opts[i] === e.ok;
+  if(V.right){
+    S.pts += C.XP_OK; S.solved++; V.streak++; V.session++; V.pts += C.XP_OK;
+    V.maxStreak = Math.max(V.maxStreak, V.streak); S.bestStreak = Math.max(S.bestStreak, V.streak);
+  } else { Arcade.loseLife(); lostIdx = S.lives; V.streak = 0; }
+  Arcade.save(); render();
+}
+function next(){
+  if(!pro() && S.lives <= 0){ const s = V.session; V = { view:'nolives', session:s }; return render(); }
+  V.ex = Arcade.nextExercise(V.streak, V.ex.topic); V.sel = null; V.done = false; render();
+}
+function refill(){
+  if(Arcade.buyLife()){ Arcade.toast('¡Vida recuperada!'); start(); } else Arcade.toast('No tienes puntos suficientes.');
+}
+function exit(){
+  if(V.view==='play' && V.session>0){ V.view='end'; return render(); }
+  location.href = 'arcade.html';
+}
+
+/* Atajos de teclado: 1-4 elige, Enter continúa */
+document.addEventListener('keydown', ev=>{
+  if(V.view!=='play') return;
+  if(!V.done && /^[1-4]$/.test(ev.key)) pick(+ev.key-1);
+  else if(V.done && ev.key==='Enter'){ ev.preventDefault(); next(); }
+});
+
+/* Reloj: regeneración de vidas en vivo */
+setInterval(()=>{
+  const changed = Arcade.tick();
+  const h = document.getElementById('hearts');
+  if(h) h.innerHTML = Arcade.heartsHTML(-1) + (S.lives<C.LIFE_MAX?` <small class="mu" id="regen">+1 en ${Arcade.mmss(Arcade.nextIn())}</small>`:'');
+  const c = document.getElementById('cd'); if(c) c.textContent = Arcade.mmss(Arcade.nextIn());
+  if(V.view==='nolives' && (pro() || S.lives>0)) start();
+  if(V.view==='intro' && changed) render();
+}, 1000);
+
+Arcade.tick();
+render();
+window.start=start; window.pick=pick; window.next=next; window.refill=refill; window.exit=exit;
+}
+</script>
+</body>
+</html>

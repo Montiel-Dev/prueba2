@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     const body = {
       items: [{
         id: "dojo-pro",
-        title: "Derivadas Dojo Pro (pago simulado)",
+        title: "ASTRO-matiks Pro (pago simulado)",
         quantity: 1,
         unit_price: PRICE,
         currency_id: CURRENCY

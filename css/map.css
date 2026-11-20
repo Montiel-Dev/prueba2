@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — pantalla de inicio: mapa de materias
+   ASTRO-matiks — pantalla de inicio: mapa de materias
    Estilo "espacial": cuadrícula, órbitas y estrellas. Es
    independiente del tema claro/oscuro de la app.
    ========================================================= */
@@ -88,8 +88,8 @@
   position:absolute; box-sizing:border-box; border-radius:50%;
   border:1px dashed rgba(138,164,255,0.22); pointer-events:none;
 }
-.m-orbit-out{ left:160px; top:115px; width:960px; height:570px; }
-.m-orbit-in{ left:370px; top:235px; width:540px; height:330px; }
+.m-orbit-out{ left:80px; top:70px; width:1120px; height:660px; }
+.m-orbit-in{ left:290px; top:155px; width:700px; height:490px; }
 
 .m-lines{ position:absolute; inset:0; pointer-events:none; transition:opacity .5s ease; }
 .m-lines.is-dim{ opacity:.35; }
@@ -97,7 +97,7 @@
 
 /* ---------- burbujas ---------- */
 .m-center{
-  position:absolute; left:562px; top:322px; width:156px; height:156px;
+  position:absolute; left:528px; top:288px; width:224px; height:224px;
   border:0; padding:0; border-radius:50%; cursor:default;
   background:conic-gradient(#fff calc(var(--p,0) * 1%), rgba(255,255,255,0.16) 0);
   font-family:inherit; color:#0C0E15;
@@ -106,9 +106,9 @@
   content:""; position:absolute; inset:6px; border-radius:50%; background:#ECEDF3;
 }
 .m-center > span{ position:relative; display:block; text-align:center; }
-.m-center-sym{ font-family:var(--m-serif); font-style:italic; font-weight:500; font-size:40px; line-height:1; }
-.m-center-name{ font-size:14px; font-weight:700; margin-top:1px; }
-.m-center-pct{ font-size:12px; font-weight:600; color:#3B4152; margin-top:1px; }
+.m-center-sym{ font-family:var(--m-serif); font-style:italic; font-weight:500; font-size:58px; line-height:1; }
+.m-center-name{ font-size:20px; font-weight:700; margin-top:1px; }
+.m-center-pct{ font-size:15px; font-weight:600; color:#3B4152; margin-top:1px; }
 .m-center{ transition:opacity .5s ease; }
 .has-focus .m-center{ cursor:pointer; opacity:.22; }
 
@@ -121,14 +121,14 @@
   position:absolute; inset:6px; box-sizing:border-box; border:0; border-radius:50%;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
   padding:0 4px; text-align:center; line-height:1.2; cursor:pointer;
-  font-family:inherit; font-weight:700; font-size:14px;
+  font-family:inherit; font-weight:700; font-size:16.5px;
   background:var(--b,#1B1E2A); color:var(--f,#ECEDF3);
   transition:background .3s ease;
 }
 .m-bubble-btn:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
-.m-extra .m-bubble-btn{ font-size:13px; }
-.m-pct{ font-size:13px; opacity:.9; }
-.m-extra .m-pct{ font-size:12px; }
+.m-extra .m-bubble-btn{ font-size:14.5px; }
+.m-pct{ font-size:15px; opacity:.9; }
+.m-extra .m-pct{ font-size:13px; }
 .m-bubble.is-open{ --b:#2F3552; --f:#fff; box-shadow:0 0 36px rgba(124,240,201,0.35); }
 .m-bubble.is-focus{ box-shadow:0 0 60px rgba(124,240,201,0.45); }
 .m-bubble.is-dim{ opacity:.22; }
@@ -242,7 +242,7 @@
 @media (prefers-reduced-motion:reduce){ .m-screen.is-intro .m-start{ animation:none; } .m-stars i{ transition:none; transform:none; } }
 
 /* ---------- Sol-faro (burbuja central) ---------- */
-.m-sun{ position:absolute; left:380px; top:140px; width:520px; height:520px; pointer-events:none; transition:opacity .5s ease; }
+.m-sun{ position:absolute; left:380px; top:140px; width:520px; height:520px; scale:1.45; pointer-events:none; transition:opacity .5s ease; }
 .has-focus .m-sun{ opacity:.22; }
 .m-center{ background:none !important; color:var(--tc,#0C0E15); }
 .m-center::before{ display:none; }
@@ -359,7 +359,7 @@
   .m-orb{ width:96px; height:96px; border-width:5px; bottom:20px; }
   .m-challenge{ left:16px; } .m-streak{ right:16px; }
   .m-orb-name{ font-size:13px; } .m-orb-sub{ font-size:10px; } .m-orb-num{ font-size:26px; }
-  .m-orb svg{ width:22px; height:22px; }
+  .m-orb > svg{ width:22px; height:22px; }   /* solo el icono; antes también encogía el dibujo de la nebulosa (.m-neb svg) */
 }
 @media (prefers-reduced-motion:reduce){ .m-orb{ transition:none; } }
 
@@ -369,7 +369,7 @@
   color:#fff; isolation:isolate; animation:m-float 7s ease-in-out infinite;
 }
 .m-neb{ position:absolute; inset:0; z-index:-1; pointer-events:none; animation:m-neb-breathe 6s ease-in-out infinite; }
-.m-neb svg{ display:block; overflow:visible; }
+.m-neb svg{ display:block; overflow:visible; width:100%; height:100%; }
 /* un velo oscuro suave detrás del número para que siempre se lea */
 .m-streak::before{ content:""; position:absolute; left:50%; top:50%; width:104px; height:104px; margin:-52px 0 0 -52px; border-radius:50%;
   background:radial-gradient(circle, rgba(8,6,18,.62) 0%, rgba(8,6,18,.35) 55%, transparent 72%); z-index:-1; }
@@ -391,15 +391,15 @@
 /* ---------- burbuja de Geometría: octaedro de malla y figuras flotantes (js/geo-art.js) ---------- */
 .m-bubble-btn[data-id="geo"]{ justify-content:flex-end; padding-bottom:11px; background:var(--b,#0D1840); }
 .m-bubble-btn[data-id="geo"] .m-label, .m-bubble-btn[data-id="geo"] .m-pct{ position:relative; text-shadow:0 1px 6px rgba(5,8,24,.9); }
-.m-geo-core{ position:absolute; left:50%; top:3px; width:84px; height:84px; margin-left:-42px; pointer-events:none; overflow:visible; }
-.m-geo-orbit{ position:absolute; left:-44px; top:-44px; width:220px; height:220px; overflow:visible; pointer-events:none; }
+.m-geo-core{ position:absolute; left:50%; top:4px; width:102px; height:102px; margin-left:-51px; pointer-events:none; overflow:visible; }
+.m-geo-orbit{ position:absolute; left:-53px; top:-53px; width:266px; height:266px; overflow:visible; pointer-events:none; }
 .m-geo-orbit .fb{ animation:m-geo-bob 6.5s ease-in-out infinite; }
 @keyframes m-geo-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
 @media (prefers-reduced-motion:reduce){ .m-geo-orbit .fb{ animation:none; } }
 
 /* ---------- burbuja de Álgebra: fichas de álgebra (js/alg-art.js) ---------- */
-.m-bubble-btn[data-id="alg"]{ justify-content:flex-end; padding-bottom:8px; background:#1D1646; }
-.m-bubble-btn[data-id="alg"] .m-label, .m-bubble-btn[data-id="alg"] .m-pct{ position:relative; text-shadow:0 1px 6px rgba(12,8,40,.9); }
+.m-bubble-btn[data-id="alg"]{ justify-content:flex-end; padding-bottom:8px; background:#12303F; }
+.m-bubble-btn[data-id="alg"] .m-label, .m-bubble-btn[data-id="alg"] .m-pct{ position:relative; text-shadow:0 1px 6px rgba(6,20,28,.9); }
 .m-alg-core{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
 /* ---------- brillo del Sol: halo amplio + corona, del color de la estrella (js/sun.js) ---------- */
@@ -410,8 +410,8 @@
 
 
 /* ---------- materias bloqueadas por requisitos ---------- */
-.m-bubble.is-locked .m-bubble-btn{ filter:grayscale(.85) brightness(.6); cursor:not-allowed; }
-.m-bubble.is-locked:not(.is-focus):not(.is-dim) .m-bubble-btn:hover{ filter:grayscale(.85) brightness(.75); }
+.m-bubble.is-locked .m-bubble-btn{ filter:brightness(.55); cursor:not-allowed; }
+.m-bubble.is-locked:not(.is-focus):not(.is-dim) .m-bubble-btn:hover{ filter:brightness(.7); }
 .m-lockico{ position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#fff; opacity:.95; filter:drop-shadow(0 1px 4px rgba(0,0,0,.7)); pointer-events:none; }
 .m-lock{ margin:12px 0 4px; padding:12px 14px; border-radius:12px; border:1px dashed #F5B455; background:rgba(245,180,85,.09); font-size:14px; }
 .m-lock b{ display:block; margin-bottom:6px; color:#F5B455; }
@@ -419,3 +419,75 @@
 .m-lock li{ margin:3px 0; }
 .m-reqs li.req-miss em{ color:#F5B455; }
 .m-reqs li.req-ok em{ color:var(--m-mint); }
+
+/* "Probabilidad y estadística" es larga: letra un poco menor para que quepa en la burbuja */
+.m-bubble-btn[data-id="est"]{ padding-left:6px; padding-right:6px; line-height:1.15; }
+.m-bubble-btn[data-id="est"] .m-label{ font-size:12.5px; overflow-wrap:anywhere; }
+
+
+/* ---------- nodo amarillo fijo: la materia que está entre Matemáticas y Álgebra (Aritmética) ---------- */
+.m-bubble.m-mid{ --b:#FFC933; --f:#2A1B00; box-shadow:0 0 26px rgba(255,201,51,.45); }
+.m-bubble.m-mid.is-focus{ box-shadow:0 0 8px 1px rgba(255,201,51,.55); }
+.m-bubble.m-mid .m-bubble-btn{ inset:4px; font-size:7.5px; line-height:1.1; padding:0 2px; cursor:pointer; }
+.m-bubble.m-mid .m-pct{ font-size:7px; }
+.m-bubble.m-mid .m-label, .m-bubble.m-mid .m-pct{ opacity:0; transition:opacity .5s ease .25s; }   /* oculto hasta que se le hace zoom */
+.m-bubble.m-mid.is-focus .m-label{ opacity:1; }
+.m-bubble.m-mid.is-focus .m-pct{ opacity:.9; }
+.m-bubble.m-mid:not(.is-focus):hover{ box-shadow:0 0 34px rgba(255,201,51,.8); }
+.m-panel-legend .dot.mid{ background:#FFC933; }
+
+/* ---------- brillo amarillo en Álgebra: invita a empezar por ahí (solo hasta el primer clic) ----------
+   Solo anima opacity/transform (fluido) y el halo apenas sobresale de la burbuja. */
+.m-bubble.m-nudge::before{
+  content:""; position:absolute; inset:-14px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle closest-side, rgba(255,214,10,0) 72%, rgba(255,214,10,.8) 86%, rgba(255,201,51,0) 100%);
+  animation:m-nudge-glow 2.4s ease-in-out infinite;
+}
+.m-bubble.m-nudge::after{
+  content:""; position:absolute; inset:-2px; border-radius:50%; pointer-events:none;
+  border:2px solid rgba(255,214,10,.9); animation:m-nudge-ping 2.4s ease-out infinite;
+}
+@keyframes m-nudge-glow{ 0%,100%{ opacity:.55; transform:scale(.97); } 50%{ opacity:1; transform:scale(1.03); } }
+@keyframes m-nudge-ping{ 0%{ transform:scale(1); opacity:.85; } 100%{ transform:scale(1.16); opacity:0; } }
+@media (prefers-reduced-motion:reduce){
+  .m-bubble.m-nudge::before{ animation:none; opacity:.9; }
+  .m-bubble.m-nudge::after{ animation:none; opacity:.7; }
+}
+.bh-event .m-bubble.m-mid{ opacity:0; }     /* durante el colapso el nodo amarillo se oculta con el resto */
+
+/* Al llegar al 100 % el nodo base deja de ser amarillo y se ve como una burbuja normal */
+.m-bubble.m-mid.m-mid-done{ --b:#1B1E2A; --f:#ECEDF3; box-shadow:none; }
+.m-bubble.m-mid.m-mid-done.is-focus{ box-shadow:0 0 8px 1px rgba(236,237,243,.35); }
+.m-bubble.m-mid.m-mid-done:not(.is-focus):hover{ box-shadow:0 0 22px rgba(236,237,243,.4); }
+
+/* ---------- burbuja de Cálculo diferencial: parábola con tangente y parábolas que salen y entran (js/calc-art.js) ---------- */
+.m-bubble-btn[data-id="calc"]{ gap:3px; }
+.m-calc-core{ flex:none; width:60px; height:45px; pointer-events:none; }
+.m-calc-orbit{ position:absolute; left:-53px; top:-53px; width:266px; height:266px; overflow:visible; pointer-events:none; }
+
+/* ---------- cometa del fondo (MapScreen._startComets) ---------- */
+.m-comet{ position:absolute; left:0; top:0; width:3px; height:3px; border-radius:50%; background:#fff; opacity:0;
+  box-shadow:0 0 4px 1px rgba(190,210,255,.8); pointer-events:none; }
+.m-comet::before{ content:""; position:absolute; top:50%; right:2px; width:34px; height:1px; transform:translateY(-50%);
+  background:linear-gradient(to left, rgba(200,220,255,.85), rgba(200,220,255,0)); }
+
+/* ---------- hojas flotantes de la burbuja de Álgebra (js/alg-art.js) ---------- */
+.m-alg-papers{ position:absolute; left:-70px; top:-70px; width:300px; height:300px; overflow:visible; pointer-events:none; }
+.m-alg-bob{ animation:m-alg-bob 6s ease-in-out infinite; }
+@keyframes m-alg-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+.m-bubble.is-locked .m-alg-papers{ filter:brightness(.55); }
+@media (prefers-reduced-motion:reduce){ .m-alg-bob{ animation:none; } }
+
+/* ---------- burbujas de Física, Trigonometría y Cálculo integral (js/fis-art.js, trig-art.js, int-art.js) ---------- */
+.m-bubble-btn[data-id="fis"], .m-bubble-btn[data-id="trig"], .m-bubble-btn[data-id="int"]{ justify-content:flex-end; padding-bottom:11px; }
+.m-bubble-btn[data-id="fis"]{ background:var(--b,#1B1840); }
+.m-bubble-btn[data-id="trig"]{ background:var(--b,#33200F); }
+.m-bubble-btn[data-id="int"]{ background:var(--b,#10302A); }
+.m-bubble-btn[data-id="fis"] .m-label, .m-bubble-btn[data-id="fis"] .m-pct,
+.m-bubble-btn[data-id="trig"] .m-label, .m-bubble-btn[data-id="trig"] .m-pct,
+.m-bubble-btn[data-id="int"] .m-label, .m-bubble-btn[data-id="int"] .m-pct{ position:relative; z-index:1; text-shadow:0 1px 6px rgba(0,0,0,.85); }
+.m-art{ position:absolute; left:-53px; top:-53px; width:266px; height:266px; overflow:visible; pointer-events:none; }
+.m-art-bob{ animation:m-art-bob 6s ease-in-out infinite; }
+@keyframes m-art-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+.m-bubble.is-locked .m-art{ filter:brightness(.55); }
+@media (prefers-reduced-motion:reduce){ .m-art-bob{ animation:none; } }

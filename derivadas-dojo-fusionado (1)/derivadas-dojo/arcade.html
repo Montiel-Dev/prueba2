@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Derivadas Dojo — Arcade</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/arcade.css">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="toast" role="alert"></div>
+<script src="js/pay.js"></script>
+<script src="js/arcade-core.js"></script>
+<script>
+/* Hub del Arcade. Los módulos (Vidas y Examen) son páginas separadas
+   que solo se desbloquean cuando el pago simulado queda aprobado. */
+const S = Arcade.S();
+const pro = Arcade.isPro();
+const forced = new URLSearchParams(location.search).has('bloqueado');
+
+function modules(){
+  const vidas = `<a class="btn" href="vidas.html">Jugar ahora</a>`;
+  const examen = pro
+    ? `<a class="btn" href="examen.html">Hacer un examen</a>`
+    : `<button class="btn alt" onclick="Arcade.goPay()">🔒 Desbloquear con Pro</button>`;
+  return `
+  <div class="mods">
+    <section class="card mod open">
+      <span class="lock ok">${pro?'VIDAS ∞':'GRATIS'}</span>
+      <div class="ico">♥</div>
+      <h2>Modo Vidas</h2>
+      <p class="mu" style="margin:0">Ejercicios ilimitados generados al azar. ${pro ? 'Con Pro tus vidas son infinitas.' : `${Arcade.CFG.LIFE_MAX} vidas, cada error cuesta una.`}</p>
+      <ul>
+        <li>Nunca se repiten: se generan al momento</li>
+        <li>La dificultad sube con tu racha</li>
+        ${pro ? '<li>Vidas infinitas con Arcade Pro</li>' : `<li>1 vida se recupera cada ${Arcade.CFG.REGEN_MS/60000} min</li><li>Con Pro: vidas infinitas</li>`}
+      </ul>
+      <div class="foot">${vidas}</div>
+    </section>
+    <section class="card mod ${pro?'open':'locked'}">
+      <span class="lock ${pro?'ok':''}">${pro?'DESBLOQUEADO':'PRO'}</span>
+      <div class="ico">⏱</div>
+      <h2>Mini-examen</h2>
+      <p class="mu" style="margin:0">Cronometrado y sin pistas, como un examen real. Ves tu nota y la corrección al entregar.</p>
+      <ul>
+        <li>3 modos: 5, 10 o 20 preguntas</li>
+        <li>Marca preguntas para revisarlas después</li>
+        <li>Nota, estrellas e historial</li>
+      </ul>
+      <div class="foot">${examen}</div>
+    </section>
+  </div>`;
+}
+
+function promo(){
+  return `
+  <section class="card promo">
+    <div>
+      <div class="eyebrow">Arcade Pro</div>
+      <h2>Vidas infinitas y mini-exámenes</h2>
+      <p class="mu" style="margin:6px 0 0">Pago mensual, simulado: pasas por un checkout completo pero con tarjetas de prueba. No se cobra dinero real.</p>
+    </div>
+    <div>
+      <div class="price">$49 <small>MXN · pago mensual</small></div>
+      <button class="btn gold block lg" style="margin-top:12px" onclick="Arcade.goPay()">Desbloquear Arcade Pro</button>
+    </div>
+  </section>`;
+}
+
+function stats(){
+  const hist = S.hist.length ? S.hist.map(h=> h.n ? Math.round(h.s/h.n*100)+'%' : h.s+'/10').join(' · ') : '—';
+  return `
+  <section class="card">
+    <h3>Tu progreso en el Arcade</h3>
+    <div class="stat-grid" style="margin-top:12px">
+      <div class="stat"><b>${S.pts}</b><span>Puntos</span></div>
+      <div class="stat"><b>${S.solved}</b><span>Ejercicios resueltos</span></div>
+      <div class="stat"><b>${S.bestStreak}</b><span>Mejor racha</span></div>
+      <div class="stat"><b>${S.bestPct}%</b><span>Mejor examen</span></div>
+    </div>
+    <p class="mu" style="margin:12px 0 0;font-size:14px">Últimos exámenes: ${hist}</p>
+  </section>`;
+}
+
+function render(){
+  document.getElementById('app').innerHTML =
+    Arcade.topbar({title:'Arcade'}) +
+    `<div class="hero"><div class="eyebrow">Práctica + examen</div>
+      <h1>Arcade de derivadas</h1>
+      <p class="mu">${pro ? 'Tu Arcade Pro está activo. Elige un módulo.' : 'Practica gratis con 5 vidas. Con Pro: vidas infinitas y mini-exámenes cronometrados.'}</p></div>` +
+    (forced && !pro ? `<div class="alert warn">El Mini-examen es parte del Arcade Pro. Desbloquéalo para entrar.</div>` : '') +
+    modules() + (pro ? stats() : promo());
+  Arcade.themeBtn();
+}
+render();
+</script>
+</body>
+</html>

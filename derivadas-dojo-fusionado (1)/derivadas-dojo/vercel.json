@@ -1,0 +1,38 @@
+{
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/variantes.js": {
+      "maxDuration": 60
+    },
+    "api/leer.js": {
+      "maxDuration": 60
+    },
+    "api/diagnostico-ia.js": {
+      "maxDuration": 60
+    },
+    "api/pro-activar.js": {
+      "maxDuration": 15
+    },
+    "api/pro-check.js": {
+      "maxDuration": 15
+    },
+    "api/animar.js": {
+      "maxDuration": 60
+    }
+  }
+}

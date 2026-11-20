@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — constelación del curso
+   ASTRO-matiks — constelación del curso
    Mismo lenguaje visual que el mapa de materias (map.css).
    ========================================================= */
 .c-screen, .b-wrap{
@@ -16,8 +16,6 @@
 }
 .on-const .c-screen{ display:flex; }
 .on-const .app{ display:none; }
-.on-const-ari .c-screen{ display:flex; }
-.on-const-ari .app{ display:none; }
 
 /* ---------- fondo ---------- */
 .c-bg{
@@ -135,13 +133,6 @@
 .c-go:hover{ filter:brightness(1.08); transform:translateY(-1px); }
 .c-go:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
 
-/* ---------- constelación de TEMAS (solo mapa, sin lecciones aún) ---------- */
-.ac-panel{ display:block; }
-.ac-panel h2{ margin:0 0 10px; }
-.ac-list{ margin:0 0 12px; padding-left:20px; color:var(--c-text); font-size:14px; line-height:1.55; }
-.ac-list li{ margin-bottom:5px; }
-.ac-soon{ margin:0; font-size:13px; color:var(--c-dim); }
-
 /* ---------- pantallas pequeñas ---------- */
 @media (max-width:720px){
   .c-sky{ max-height:none; min-height:0; }
@@ -185,3 +176,8 @@
 @media (max-width:720px){ .b-wrap .c-sky{ max-height:none; } }
 .course-bar button{ white-space:nowrap; }
 @media (max-width:640px){ .course-bar .cb-title{ display:none; } .course-bar #cb-review{ margin-left:auto; } }
+
+/* ---------- constelación de Aritmética (js/ari.js): solo la vista ---------- */
+.on-ari .c-screen.is-ari{ display:flex; }
+.on-ari .app{ display:none; }
+.c-go[disabled]{ opacity:.55; cursor:default; filter:none; transform:none; }

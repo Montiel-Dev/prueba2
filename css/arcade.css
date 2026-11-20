@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — Arcade + Checkout (estilos compartidos)
+   ASTRO-matiks — Arcade + Checkout (estilos compartidos)
    Mismos tokens de color que css/styles.css
    ========================================================= */
 :root{
@@ -71,7 +71,7 @@ h1{font-size:30px}h2{font-size:24px}h3{font-size:18px}
 .mod ul{margin:2px 0 4px;padding-left:18px;color:var(--text-dim);font-size:14.5px}
 .mod .foot{margin-top:auto;padding-top:8px}
 .mod.locked{border-style:dashed}
-.mod.locked .ico{filter:grayscale(1);opacity:.7}
+.mod.locked .ico{opacity:.7}
 .lock{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--amber);border:1px solid var(--amber);border-radius:99px;padding:2px 10px}
 .mod.open{border-color:var(--success)}
 .lock.ok{color:var(--success);border-color:var(--success)}
