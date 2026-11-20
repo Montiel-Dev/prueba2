@@ -168,8 +168,8 @@ cuenta como dominado solo si sale sin errores; si no, pasa a la cola de repaso.
 
 ## Pantalla de inicio: mapa de materias (nuevo)
 
-La app abre en un mapa: una burbuja central (Matemáticas) y 5 ramas
-(Cálculo diferencial, Cálculo integral, Geometría, Trigonometría, Álgebra).
+La app abre en un mapa: una burbuja central (Matemáticas) y 6 ramas
+(Cálculo diferencial, Cálculo integral, Geometría, Trigonometría, Álgebra y Física).
 
 - **Primer clic** en una burbuja: zoom + recuadro translúcido con sus requisitos.
   Al abrir una rama, las demás se colorean según qué tan relacionadas están
@@ -179,6 +179,8 @@ La app abre en un mapa: una burbuja central (Matemáticas) y 5 ramas
 - El anillo de cada burbuja es el % completado (hoy solo Cálculo diferencial
   tiene progreso real; el resto marca 0 % y "Próximamente").
 - En la barra lateral del curso, "← Mapa de materias" regresa al mapa.
+
+Álgebra brilla en amarillo (clase `m-nudge`) hasta que se le hace clic por primera vez (`localStorage: dojo-hint-alg`); el nodo amarillo (burbuja pequeña que se revela al hacerle clic) entre Matemáticas y Álgebra es Aritmética (`"mid"` en `js/subjects.js`).
 
 Para activar un curso nuevo: en `js/subjects.js` pon `available:true`, calcula su
 progreso en `subjectPct()` y conéctalo en `MapScreen.openCourse()` (`js/map.js`).
@@ -273,6 +275,14 @@ Nunca se guarda el número completo ni el CVV (solo marca y últimos 4 dígitos)
 
 ## Escáner de problemas (cámara + IA) — nuevo
 
+> **Actualización:** el Escáner ahora trabaja en dos pasos: `api/leer.js` lee la foto y devuelve el
+> texto del problema (el alumno puede corregirlo), y luego `api/variantes.js` crea las variantes a
+> partir de ese texto; cada variante puede mostrarse como animación paso a paso (`api/animar.js`,
+> `js/anim.js`). Acepta varias IAs (pon al menos una clave en Vercel: `GROQ_API_KEY`, `GEMINI_API_KEY`,
+> etc., ver `.env.example`). El pase Pro usa `PRO_SECRET` (`api/pro-activar.js`, `lib/pro.js`).
+> Pruebas del servidor: `node --test tests/ai.test.js tests/pro.test.js`.
+> Los ajustes de celular están en `css/mobile.css` (se carga al final en todas las páginas).
+
 `camara.html` (enlazado desde una tarjeta en la pantalla principal, "📷 Escáner de problemas").
 El alumno toma una foto a un problema de derivadas (o sube una que ya tenga), y la app:
 
@@ -306,7 +316,7 @@ dónde activarlo como Pro más adelante:
    - Local: cópiala en `.env.local` (a partir de `.env.example`) y corre `vercel dev`.
    - Vercel: Settings → Environment Variables → `GEMINI_API_KEY` → después hay que hacer
      **Redeploy** (las variables nuevas no aplican al deploy que ya estaba publicado).
-3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-flash-latest`, que siempre apunta al Flash vigente).
+3. (Opcional) `GEMINI_MODEL` si quieres fijar otro modelo (por defecto `gemini-2.5-flash`).
 
 Como habla con un servidor, **necesita el sitio corriendo con Vercel o `vercel dev`** — no funciona
 abriendo `index.html` con doble clic (igual que el pago en modo `"mercadopago"`).
@@ -353,5 +363,5 @@ y apuntarlo en `resolve()` de la institución. Para dar contenido a una unidad "
 ## Sol-faro y agujero negro
 
 - La burbuja central es un **sol** (`js/sun.js`) cuyo color sigue al % total: roja → naranja → amarilla → blanca → blanco-azulada, y sus 12 rayos se encienden con el avance.
-- El % de Matemáticas (centro) es el promedio del % de las 5 burbujas que la orbitan. Al llegar al **100 %** aparece el botón "Colapsar la estrella" y, al pulsarlo, la estrella colapsa, explota y queda un **agujero negro**; las burbujas se estiran ("espaguetificación"), caen y reaparecen girando alrededor. Después las burbujas ya no muestran porcentajes. El botón "↻ Ver colapso" la repite.
+- El % de Matemáticas (centro) es el promedio del % de las 6 burbujas que la orbitan. Al llegar al **100 %** aparece el botón "Colapsar la estrella" y, al pulsarlo, la estrella colapsa, explota y queda un **agujero negro**; las burbujas se estiran ("espaguetificación"), caen y reaparecen girando alrededor. Después las burbujas ya no muestran porcentajes. El botón "↻ Ver colapso" la repite.
 - Vista previa: añade `?pct=60` o `?fase=agujero` a la URL.

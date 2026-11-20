@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mini-examen — Derivadas Dojo</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/arcade.css">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="toast" role="alert"></div>
+<div id="modal"></div>
+<script src="js/pay.js"></script>
+<script src="js/arcade-core.js"></script>
+<script>
+/* Mini-examen cronometrado tipo examen real.
+   Sin pistas ni feedback hasta entregar. El intento en curso sobrevive a un refresh. */
+if(Arcade.guard()){
+
+const S = Arcade.S(), C = Arcade.CFG;
+const RUN = 'dojo-exam-run-v1';
+let V = { view:'setup', mode:'estandar' };
+
+const modeOf = id=> C.MODES.find(m=>m.id===id) || C.MODES[1];
+const stars = pct=> pct>=90 ? 3 : pct>=70 ? 2 : pct>=60 ? 1 : 0;
+const saveRun = ()=>{ try{ localStorage.setItem(RUN, JSON.stringify({qs:V.qs, ans:V.ans, flags:V.flags, i:V.i, end:V.end, mode:V.mode})); }catch(e){} };
+const clearRun = ()=>{ try{ localStorage.removeItem(RUN); }catch(e){} };
+const bar = ()=> Arcade.topbar({ back:'arcade.html', backLabel:'Arcade', title:'Mini-examen' });
+
+const VIEWS = {
+  setup: ()=>{
+    const hist = S.hist.length ? S.hist.map(h=> h.n ? Math.round(h.s/h.n*100)+'%' : h.s+'/10').join(' · ') : 'aún no has hecho ninguno';
+    return `
+    <div class="card">
+      <div class="eyebrow">Tipo examen real</div>
+      <h1>Mini-examen cronometrado</h1>
+      <p class="mu">Sin pistas y sin feedback hasta entregar. Puedes moverte entre preguntas y marcar las que quieras revisar.
+        Si se acaba el tiempo, se entrega solo.</p>
+      <div class="modes">${C.MODES.map(m=>`<button class="mode ${V.mode===m.id?'sel':''}" onclick="setMode('${m.id}')"><b>${m.name}</b><span>${m.note}</span></button>`).join('')}</div>
+      <button class="btn lg" onclick="start()">Empezar examen</button>
+      <p class="mu" style="font-size:14px;margin:14px 0 0">Mejor nota: <b>${S.bestPct}%</b> · Últimos: ${hist}</p>
+    </div>`;
+  },
+
+  run: ()=>{
+    const q=V.qs[V.i], n=V.qs.length, last=V.i===n-1, left=V.end-Date.now();
+    return `
+    <div class="card">
+      <div class="row"><span class="mu">Pregunta ${V.i+1} de ${n}</span><b id="tm" class="timer ${left<=20000?'crit':left<=60000?'warn':''}">${Arcade.mmss(left)}</b></div>
+      <div class="prog"><i style="width:${V.ans.filter(a=>a!==null).length/n*100}%"></i></div>
+      <div class="navdots">${V.qs.map((_,j)=>`<button class="dot ${V.ans[j]!==null?'done':''} ${j===V.i?'cur':''} ${V.flags[j]?'flag':''}" aria-label="Ir a la pregunta ${j+1}" onclick="jump(${j})">${j+1}</button>`).join('')}</div>
+      <div class="mu">Calcula ${q.ask} para</div><div class="fx">f(x) = ${q.q}</div>
+      <div class="opts">${q.opts.map((o,j)=>`<button class="opt ${V.ans[V.i]===j?'sel':''}" onclick="ans(${j})"><span class="k">${'ABCD'[j]}</span>${o}</button>`).join('')}</div>
+      <div class="row">
+        <button class="flagbtn ${V.flags[V.i]?'on':''}" onclick="flag()">⚑ ${V.flags[V.i]?'Marcada':'Marcar para revisar'}</button>
+        <span class="gap">
+          <button class="btn alt" ${V.i?'':'disabled'} onclick="go(-1)">← Anterior</button>
+          ${last?'<button class="btn gold" onclick="confirmSubmit()">Entregar examen</button>':'<button class="btn" onclick="go(1)">Siguiente →</button>'}
+        </span>
+      </div>
+    </div>
+    <div class="row"><button class="lnk" onclick="confirmSubmit()">Entregar ahora</button><button class="lnk" onclick="confirmAbandon()">Abandonar</button></div>`;
+  },
+
+  result: ()=>{ const r=V.r; return `
+    <div class="card" style="text-align:center">
+      <div class="mu">${r.auto?'Se acabó el tiempo.':'Examen entregado.'} · Modo ${Arcade.esc(r.modeName)}</div>
+      <div class="big" style="margin-top:6px">${r.s}/${r.n}</div>
+      <div class="mu">${r.pct}%</div>
+      <div class="stars">${'★'.repeat(r.st)}${'☆'.repeat(3-r.st)}</div>
+      <p>+${r.s*5} puntos${r.newBest?' · ¡Nueva mejor nota!':''} · Tiempo usado: ${Arcade.mmss(r.used*1000)}</p>
+      <div class="gap" style="justify-content:center"><button class="btn" onclick="setup()">Otro examen</button><a class="btn alt" href="vidas.html">Practicar en Modo Vidas</a></div>
+    </div>
+    <div class="card"><h3>Corrección</h3>${r.items}</div>`; }
+};
+
+function render(){
+  document.getElementById('app').innerHTML = bar() + VIEWS[V.view]();
+  Arcade.themeBtn();
+}
+function setup(){ V = { view:'setup', mode:V.mode || 'estandar' }; render(); }
+function setMode(id){ V.mode = id; render(); }
+
+/* ---------- examen ---------- */
+function start(){
+  const m = modeOf(V.mode);
+  V = { view:'run', mode:m.id, qs:Arcade.examSet(m.q), ans:Array(m.q).fill(null), flags:Array(m.q).fill(false), i:0, end:Date.now()+m.secs*1000, started:Date.now() };
+  saveRun(); render();
+}
+function ans(j){ V.ans[V.i] = j; saveRun(); render(); }
+function go(d){ V.i = Math.min(V.qs.length-1, Math.max(0, V.i+d)); saveRun(); render(); }
+function jump(j){ V.i = j; saveRun(); render(); }
+function flag(){ V.flags[V.i] = !V.flags[V.i]; saveRun(); render(); }
+
+function modal(html){ document.getElementById('modal').innerHTML = html ? `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>` : ''; }
+function closeModal(){ modal(''); }
+function confirmSubmit(){
+  const blank = V.ans.filter(a=>a===null).length, fl = V.flags.filter(Boolean).length;
+  modal(`<h3>¿Entregar el examen?</h3>
+    <p class="mu">${blank?`Tienes <b style="color:var(--amber)">${blank} sin responder</b>. `:'Respondiste todas las preguntas. '}${fl?`${fl} marcada${fl>1?'s':''} para revisar. `:''}Después de entregar no podrás cambiar nada.</p>
+    <div class="gap" style="margin-top:16px"><button class="btn gold" onclick="finish()">Entregar</button><button class="btn alt" onclick="closeModal()">Seguir revisando</button></div>`);
+}
+function confirmAbandon(){
+  modal(`<h3>¿Abandonar el examen?</h3><p class="mu">Se pierde este intento y no cuenta para tu historial.</p>
+    <div class="gap" style="margin-top:16px"><button class="btn" style="background:var(--error);border-color:var(--error);color:#fff" onclick="abandon()">Abandonar</button><button class="btn alt" onclick="closeModal()">Seguir en el examen</button></div>`);
+}
+function abandon(){ clearRun(); closeModal(); setup(); }
+
+function finish(auto){
+  if(V.view!=='run') return;
+  closeModal();
+  const n = V.qs.length; let s = 0;
+  const items = V.qs.map((q,i)=>{
+    const a = V.ans[i], ok = a!==null && q.opts[a]===q.ok; if(ok) s++;
+    return `<div class="it"><b class="${ok?'v':'x'}">${ok?'✓':'✗'}</b> <span class="mu">${i+1}. ${Arcade.esc(q.topic)}</span><br>${q.ask} para f(x) = ${q.q}` +
+      (ok ? '' : `<br>Tu respuesta: ${a===null?'<i>sin responder</i>':q.opts[a]}<br>Correcta: <b>${q.ok}</b><br><span class="mu">${q.why}</span>`) + `</div>`;
+  }).join('');
+  const pct = Math.round(s/n*100), m = modeOf(V.mode);
+  const newBest = pct > S.bestPct;
+  S.pts += s*5; S.exams++; S.bestPct = Math.max(S.bestPct, pct); S.best = Math.max(S.best, s);
+  S.hist.unshift({ s, n, mode:m.id, date:Date.now() }); S.hist = S.hist.slice(0,6);
+  Arcade.save(); clearRun();
+  const used = Math.min(m.secs, Math.round((Date.now()-V.started)/1000));
+  V = { view:'result', mode:V.mode, r:{ s, n, pct, st:stars(pct), items, auto:!!auto, newBest, modeName:m.name, used } };
+  render();
+}
+
+/* Reanudar un examen en curso (si se recargó la página) */
+try{
+  const run = JSON.parse(localStorage.getItem(RUN) || 'null');
+  if(run && run.qs && run.end > Date.now()) V = { view:'run', started:run.end - modeOf(run.mode).secs*1000, ...run };
+  else if(run) clearRun();
+}catch(e){ clearRun(); }
+
+setInterval(()=>{
+  if(V.view!=='run') return;
+  const ms = V.end - Date.now();
+  if(ms <= 0) return finish(true);
+  const t = document.getElementById('tm');
+  if(t){ t.textContent = Arcade.mmss(ms); t.className = 'timer ' + (ms<=20000?'crit':ms<=60000?'warn':''); }
+}, 500);
+
+document.addEventListener('keydown', ev=>{
+  if(V.view!=='run' || document.querySelector('.modal-bg')) return;
+  if(/^[1-4]$/.test(ev.key)) ans(+ev.key-1);
+  else if(ev.key==='ArrowRight') go(1);
+  else if(ev.key==='ArrowLeft') go(-1);
+});
+
+render();
+Object.assign(window, { setup, setMode, start, ans, go, jump, flag, confirmSubmit, confirmAbandon, abandon, closeModal, finish });
+}
+</script>
+</body>
+</html>
