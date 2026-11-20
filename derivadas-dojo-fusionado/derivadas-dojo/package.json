@@ -1,0 +1,5 @@
+{
+  "name": "derivadas-dojo",
+  "private": true,
+  "engines": { "node": ">=18" }
+}

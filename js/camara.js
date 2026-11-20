@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — Escáner de problemas (cámara + IA)
+   ASTRO-matiks — Escáner de problemas (cámara + IA)
    Flujo: tomar/subir foto -> comprimir en el navegador ->
    POST /api/variantes -> muestra N variantes con solución
    paso a paso (mismo tema y dificultad que la foto).

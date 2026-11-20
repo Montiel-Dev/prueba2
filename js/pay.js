@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — Dojo Pro (pago SIMULADO con Mercado Pago)
+   ASTRO-matiks — Dojo Pro (pago SIMULADO con Mercado Pago)
    Flujo: botón → /api/create-preference → checkout de Mercado
    Pro (modo prueba) → vuelve a la app → /api/verify-payment →
    se guarda el comprobante en localStorage.
@@ -13,8 +13,8 @@ const Pay = {
   // "local"       = checkout simulado propio (checkout.html). Funciona sin servidor ni cuentas.
   // "mercadopago" = Checkout Pro real en modo prueba (necesita Vercel + MP_ACCESS_TOKEN).
   MODE: "local",
-  KEY: "derivadas-dojo-pro-v1",
-  PENDING: "derivadas-dojo-pending-ref",
+  KEY: "astro-matiks-pro-v1",
+  PENDING: "astro-matiks-pending-ref",
   PRICE_LABEL: "$49 MXN",
 
   receipt(){
@@ -45,7 +45,7 @@ const Pay = {
     location.href = d.url;
   },
 
-  TOKEN_KEY: "derivadas-dojo-pro-token",
+  TOKEN_KEY: "astro-matiks-pro-token",
   token(){ try{ return localStorage.getItem(this.TOKEN_KEY) || ""; }catch(e){ return ""; } },
 
   // Pide al servidor el pase firmado (gratis si PRO_FREE_TEST=1; si no, exige pago verificado).

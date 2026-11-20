@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — constelación del curso
+   ASTRO-matiks — constelación del curso
    Pantalla que se muestra al entrar a una materia: cada bloque
    es una estrella. Su tamaño y brillo crecen con el avance.
    Clic en una estrella → su panel inferior (Lecciones / Práctica /

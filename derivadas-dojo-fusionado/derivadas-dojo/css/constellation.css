@@ -1,0 +1,183 @@
+/* =========================================================
+   Derivadas Dojo — constelación del curso
+   Mismo lenguaje visual que el mapa de materias (map.css).
+   ========================================================= */
+.c-screen, .b-wrap{
+  --c-bg:#0C0E15; --c-text:#F1F2F7; --c-dim:#A3A9BC;
+  --c-gold:#F2B825; --c-mint:#7CF0C9; --c-peri:#8AA4FF; --c-off:#5A627C;
+  --c-font:'Manrope','Inter',system-ui,sans-serif;
+}
+.c-screen{
+  position:fixed; inset:0; z-index:50;
+  overflow-x:hidden; overflow-y:auto;
+  background:var(--c-bg); color:var(--c-text); font-family:var(--c-font);
+  -webkit-font-smoothing:antialiased;
+  display:none; flex-direction:column;
+}
+.on-const .c-screen{ display:flex; }
+.on-const .app{ display:none; }
+
+/* ---------- fondo ---------- */
+.c-bg{
+  position:fixed; inset:0; pointer-events:none;
+  background-image:
+    radial-gradient(ellipse 50vw 40vh at 50% 45%, rgba(242,184,37,0.05), transparent 70%),
+    linear-gradient(rgba(138,164,255,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138,164,255,0.07) 1px, transparent 1px);
+  background-size:100% 100%, 80px 80px, 80px 80px;
+}
+.c-stars{ position:fixed; inset:0; pointer-events:none; }
+.c-stars i{ position:absolute; border-radius:50%; background:#fff; }
+.c-stars i.tw{ animation:c-tw 4s ease-in-out infinite; }
+@keyframes c-tw{ 0%,100%{ opacity:.2; } 50%{ opacity:.85; } }
+
+/* ---------- cabecera ---------- */
+.c-top{
+  position:relative; z-index:3; display:flex; justify-content:space-between; align-items:center;
+  padding:22px clamp(20px,4vw,48px) 0; flex:none;
+}
+.c-back, .c-plan{
+  border:0; background:none; cursor:pointer; font:600 14px var(--c-font);
+  color:var(--c-dim); padding:10px 4px; min-height:44px; border-radius:8px;
+}
+.c-back:hover, .c-plan:hover{ color:#fff; }
+.c-back:focus-visible, .c-plan:focus-visible{ outline:3px solid #fff; outline-offset:2px; }
+
+.c-hero{
+  position:relative; z-index:3; display:flex; align-items:center; gap:16px;
+  padding:6px clamp(20px,4vw,48px) 0; flex:none;
+}
+.c-hero h1{ margin:0; font:700 20px/1.2 var(--c-font); letter-spacing:-0.01em; }
+.c-hero p{ margin:2px 0 0; font-size:13px; color:var(--c-dim); }
+
+/* Sol de progreso: esfera naranja dentro de un anillo */
+.c-sun{ --p:0; position:relative; width:72px; height:72px; flex:none; }
+.c-sun::before{
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(#fff calc(var(--p) * 1%), rgba(255,255,255,0.14) 0);
+  -webkit-mask:radial-gradient(circle, transparent 0 31px, #000 32px);
+          mask:radial-gradient(circle, transparent 0 31px, #000 32px);
+}
+.c-sun i{
+  position:absolute; inset:14px; border-radius:50%;
+  background:radial-gradient(circle at 38% 34%, #FFC27A, #F2993A 62%, #B8651A);
+  box-shadow:0 0 30px 6px rgba(242,153,58,0.38);
+}
+
+/* ---------- cielo ---------- */
+.c-sky{
+  position:relative; z-index:2; flex:1 1 auto; min-height:300px; max-height:520px;
+  width:100%; max-width:1200px; margin:0 auto;
+}
+.c-lines{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.c-lines line{ stroke-width:1.6; }
+.c-lines line.on{ stroke:var(--c-gold); opacity:.95; }
+.c-lines line.off{ stroke:var(--c-off); stroke-dasharray:5 5; opacity:.65; }
+
+.c-node{
+  position:absolute; transform:translate(-50%, calc(var(--s,30px) / -2 - 6px));
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  width:150px; padding:6px 4px 8px; border:0; border-radius:16px; background:none;
+  color:var(--c-dim); font-family:inherit; cursor:pointer; text-align:center;
+  transition:transform .25s ease, background .25s ease;
+}
+.c-node:hover{ transform:translate(-50%, calc(var(--s,30px) / -2 - 6px)) scale(1.06); }
+.c-node:focus-visible{ outline:3px solid #fff; outline-offset:2px; }
+.c-star{ display:block; line-height:0; margin-bottom:6px; transition:transform .3s ease; }
+.c-star svg{ display:block; fill:var(--c-off); transition:fill .3s ease, filter .3s ease; }
+.c-name{ font-size:14px; font-weight:600; line-height:1.2; text-shadow:0 0 5px #0C0E15, 0 0 9px #0C0E15, 0 0 12px #0C0E15; }
+.c-pct{ font-size:12px; font-weight:700; color:var(--c-dim); }
+
+.c-node.on .c-star svg{ fill:var(--c-gold); filter:drop-shadow(0 0 14px rgba(242,184,37,.75)) drop-shadow(0 0 34px rgba(242,184,37,.4)); }
+.c-node.on .c-name{ color:#fff; }
+.c-node.on .c-pct{ color:var(--c-gold); }
+.c-node:not(.on) .c-name{ color:#9BA2B8; }
+
+/* estrella elegida: halo sutil y panel abajo con su detalle */
+.c-node.sel{ background:rgba(255,255,255,0.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14); }
+.c-node.sel .c-star{ transform:scale(1.08); }
+.c-node.on:not(.sel) .c-star svg, .c-node:not(.on):not(.sel) .c-star svg{ animation:none; }
+.c-node.sel .c-star svg{ animation:c-pulse 2.8s ease-in-out infinite; }
+@keyframes c-pulse{ 50%{ opacity:.82; } }
+
+/* ---------- panel inferior ---------- */
+.c-panel{
+  position:sticky; bottom:clamp(14px,4vh,34px); z-index:4; flex:none;
+  width:min(900px, calc(100% - 2 * clamp(14px,4vw,48px))); margin:0 auto clamp(14px,4vh,34px);
+  box-sizing:border-box; padding:18px 28px 20px;
+  display:grid; grid-template-columns:1fr auto; column-gap:28px; align-items:center;
+  background:rgba(16,19,32,0.82); border:1px solid rgba(255,255,255,0.1); border-radius:26px;
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  box-shadow:0 24px 60px -24px rgba(0,0,0,.8);
+}
+.c-panel h2{ grid-column:1 / -1; margin:0 0 10px; font:700 20px/1.2 var(--c-font); letter-spacing:-0.01em; }
+.c-secs{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+.c-sec{
+  display:block; border:0; background:none; padding:6px 0; color:inherit; font-family:inherit; text-align:left; cursor:pointer;
+  border-radius:8px;
+}
+.c-sec:hover .c-sec-top span{ color:#fff; }
+.c-sec:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+.c-sec-top{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:7px; }
+.c-sec-top span{ color:var(--c-dim); }
+.c-sec-top b{ color:#fff; font-weight:700; }
+.c-bar{ display:block; height:6px; border-radius:99px; background:rgba(255,255,255,0.12); overflow:hidden; }
+.c-bar i{ display:block; height:100%; border-radius:99px; }
+.c-bar i.mint{ background:var(--c-mint); }
+.c-bar i.peri{ background:var(--c-peri); }
+.c-go{
+  min-height:48px; padding:0 34px; border:0; border-radius:99px; cursor:pointer;
+  background:var(--c-mint); color:#0C0E15; font:800 16px var(--c-font);
+  transition:filter .2s ease, transform .2s ease;
+}
+.c-go:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+.c-go:focus-visible{ outline:3px solid #fff; outline-offset:3px; }
+
+/* ---------- pantallas pequeñas ---------- */
+@media (max-width:720px){
+  .c-sky{ max-height:none; min-height:0; }
+  .c-node{ width:140px; }
+  .c-sky{ margin-bottom:8px; }
+  .c-panel{ grid-template-columns:1fr; padding:14px 16px 16px; row-gap:12px; }
+  .c-panel h2{ font-size:16px; margin-bottom:6px; }
+  .c-secs{ gap:12px; }
+  .c-sec-top{ flex-direction:column; gap:1px; margin-bottom:6px; font-size:12px; }
+  .c-go{ width:100%; }
+}
+@media (prefers-reduced-motion:reduce){
+  .c-stars i.tw, .c-node.sel .c-star svg{ animation:none; }
+  .c-node, .c-star, .c-go{ transition:none; }
+}
+
+/* ---------- curso sin barra lateral ---------- */
+.app{ display:block; }
+.sidebar{ display:none !important; }
+.main{ margin:0 auto; max-width:900px; width:100%; }
+.course-bar{
+  position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:10px;
+  padding:10px clamp(14px,3vw,32px); background:var(--surface); border-bottom:1px solid var(--line);
+}
+.course-bar button{
+  min-height:40px; padding:0 14px; border-radius:99px; cursor:pointer; font:600 13px var(--font-ui);
+  background:transparent; color:var(--text-dim); border:1px solid var(--line);
+}
+.course-bar button:hover{ color:var(--text); border-color:var(--accent); }
+.course-bar button:disabled{ opacity:.4; cursor:default; }
+.course-bar .cb-title{ flex:1; font:600 14px var(--font-ui); color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.course-bar .cb-back{ color:var(--text); border-color:var(--text-faint); }
+.course-bar .theme-btn{ width:40px; padding:0; font-size:16px; }
+
+/* constelación dentro de un bloque */
+.b-wrap{ position:relative; margin:8px -8px 24px; border-radius:22px; overflow:hidden;
+  background:#0C0E15 radial-gradient(ellipse 60% 70% at 50% 40%, rgba(242,184,37,0.06), transparent 70%); border:1px solid var(--line); }
+.b-wrap .c-sky{ min-height:300px; max-height:340px; }
+.c-sky-block{ position:relative; }
+.c-nodes{ position:absolute; inset:0; }
+@media (max-width:720px){ .b-wrap .c-sky{ max-height:none; } }
+.course-bar button{ white-space:nowrap; }
+@media (max-width:640px){ .course-bar .cb-title{ display:none; } .course-bar #cb-review{ margin-left:auto; } }
+
+/* ---------- constelación de Aritmética (js/ari.js): solo la vista ---------- */
+.on-ari .c-screen.is-ari{ display:flex; }
+.on-ari .app{ display:none; }
+.c-go[disabled]{ opacity:.55; cursor:default; filter:none; transform:none; }

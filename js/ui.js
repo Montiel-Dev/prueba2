@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — interfaz
+   ASTRO-matiks — interfaz
    Renderiza la barra lateral y las pantallas dentro de #main.
    No usa ningún framework: funciones que arman HTML y lo
    inyectan, más listeners.

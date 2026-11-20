@@ -1,11 +1,11 @@
 /* =========================================================
-   Derivadas Dojo — motor de estado
+   ASTRO-matiks — motor de estado
    Maneja puntos, racha, progreso por bloque y la cola de
    repaso (ejercicios fallados). Todo se guarda en
    localStorage para que el progreso persista entre sesiones.
    ========================================================= */
 
-const STORAGE_KEY = "derivadas-dojo-state-v1";
+const STORAGE_KEY = "astro-matiks-state-v1";
 
 function defaultState(){
   return {

@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — problemas guiados (paso a paso)
+   ASTRO-matiks — problemas guiados (paso a paso)
    Se carga DESPUÉS de data.js y math.js. Aquí agregas:
    - formulas: hoja de fórmulas de cada bloque (visible en práctica y examen)
    - lecciones de "ejemplo resuelto"

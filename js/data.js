@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — banco de contenido
+   ASTRO-matiks — banco de contenido
    Cada bloque = una unidad del curso. Dentro de cada uno:
    - lessons:  explicaciones cortas con ejemplos
    - practice: ejercicios para aprender haciendo (con pistas)

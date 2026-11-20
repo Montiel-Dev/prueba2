@@ -1,6 +1,6 @@
 /* =========================================================
-   Derivadas Dojo — pantalla de inicio: mapa de materias
-   Una burbuja central (Matemáticas) y 5 ramas. Primer clic en
+   ASTRO-matiks — pantalla de inicio: mapa de materias
+   Una burbuja central (Matemáticas) y 6 ramas. Primer clic en
    una burbuja: zoom + recuadro de requisitos. Segundo clic en
    la misma burbuja: entra al curso. Esc / clic en el fondo /
    botón ×: vuelve a la vista general.
@@ -9,11 +9,16 @@
 
 const MapScreen = {
   W:1280, H:800, CX:640, CY:400,       // lienzo de diseño (se escala a la ventana)
-  RX:270, RY:165,                      // órbita de las ramas
-  ORX:480, ORY:285,                    // órbita exterior (extras)
+  RX:350, RY:210,                      // órbita de las ramas
+  ORX:560, ORY:330,                    // órbita exterior (extras)
+  BD:160,                              // diámetro de las burbujas de rama
+  BS:1.45,                             // celular: las burbujas se ven este tanto más grandes (css/mobile.css lee --bs)
+  CR:112,                              // radio de la burbuja central (diámetro 224)
+  MIDD:52,                             // diámetro máximo del nodo amarillo (entre Matemáticas y su rama)
+  HINT_KEY:"dojo-hint-alg",            // ya se hizo clic en Álgebra por primera vez
   focus:null,                          // burbuja con zoom
   branch:null,                         // rama abierta (muestra relaciones y extras)
-  nodes:{}, extraNodes:{}, extraPos:{}, _extrasFor:null,
+  nodes:{}, midNodes:{}, extraNodes:{}, extraPos:{}, _extrasFor:null,
 
   TEMPLATE:`
     <div class="m-bg"></div>
@@ -99,6 +104,7 @@ const MapScreen = {
     this.world = el.querySelector("#m-world");
     this.panel = el.querySelector("#m-panel");
     this._buildStars();
+    this._startComets();
     this._buildSun();
     this._buildBranches();
     this._buildCenterLines();
@@ -147,7 +153,7 @@ const MapScreen = {
   },
 
   // ---------------- inicio de sesión (perfil local; aún sin servidor) ----------------
-  USER_KEY:"derivadas-dojo-user",
+  USER_KEY:"astro-matiks-user",
   _user(){ try{ return JSON.parse(localStorage.getItem(this.USER_KEY)); }catch(e){ return null; } },
 
   _paintLogin(){
@@ -201,6 +207,35 @@ const MapScreen = {
     }
   },
 
+  // Cometa diminuto: cada cierto tiempo cruza el fondo. Su cabeza mide 3 px (menos que las estrellas grandes).
+  _startComets(){
+    if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const box = this.el.querySelector(".m-stars");
+    const launch = ()=>{
+      if(this.isOpen() && !document.hidden){
+        const W = this.el.clientWidth, H = this.el.clientHeight;
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const x0 = dir > 0 ? Math.random()*W*0.5 : W*0.5 + Math.random()*W*0.5;
+        const y0 = Math.random()*H*0.35;
+        const dist = 160 + Math.random()*140, ang = 18 + Math.random()*22;
+        const dx = dir*Math.cos(ang*Math.PI/180)*dist, dy = Math.sin(ang*Math.PI/180)*dist;
+        const rot = Math.atan2(dy, dx)*180/Math.PI;
+        const c = document.createElement("span");
+        c.className = "m-comet";
+        box.appendChild(c);
+        const a = c.animate([
+          { transform:`translate(${x0}px,${y0}px) rotate(${rot}deg)`, opacity:0 },
+          { opacity:1, offset:.15 },
+          { opacity:1, offset:.75 },
+          { transform:`translate(${x0+dx}px,${y0+dy}px) rotate(${rot}deg)`, opacity:0 }
+        ], { duration:1800 + Math.random()*900, easing:"linear" });
+        a.onfinish = ()=> c.remove();
+      }
+      setTimeout(launch, 9000 + Math.random()*13000);   // uno cada 9–22 s
+    };
+    setTimeout(launch, 4000 + Math.random()*4000);
+  },
+
   // Las estrellas brillan un poco más cuando el cursor (o el dedo) se acerca
   _bindStars(){
     const stars = [...this.el.querySelectorAll(".m-stars i")];
@@ -222,8 +257,8 @@ const MapScreen = {
   },
 
   _branchPos(id){
-    const a = SUBJECTS[id].ang * Math.PI / 180;
-    return { x: this.CX + this.RX*Math.cos(a), y: this.CY + this.RY*Math.sin(a) };
+    const a = SUBJECTS[id].ang * Math.PI / 180, k = SUBJECTS[id].push || 0;   // push: se aleja del Sol
+    return { x: this.CX + (this.RX + k)*Math.cos(a), y: this.CY + (this.RY + k)*Math.sin(a) };
   },
 
   _bubble(id, d, x, y, cls){
@@ -236,9 +271,21 @@ const MapScreen = {
       wrap.insertAdjacentHTML("afterbegin", GEO_ART.orbit);
       wrap.querySelector(".m-bubble-btn").insertAdjacentHTML("afterbegin", GEO_ART.core);
     }
+    if(id === "calc" && typeof CALC_ART !== "undefined"){      // parábola con tangente + parábolas que salen y entran
+      wrap.querySelector(".m-bubble-btn").insertAdjacentHTML("afterbegin", CALC_ART.core);
+      wrap.insertAdjacentHTML("beforeend", CALC_ART.orbit);
+    }
     if(id === "alg" && typeof ALG_ART !== "undefined"){       // fichas de álgebra (x + 1)²
       wrap.querySelector(".m-bubble-btn").insertAdjacentHTML("afterbegin", ALG_ART.core);
+      wrap.insertAdjacentHTML("afterbegin", ALG_ART.back);     // hojas que quedan detrás de la burbuja
+      wrap.insertAdjacentHTML("beforeend", ALG_ART.front);     // hojas que quedan delante
     }
+    if(id === "fis" && typeof FIS_ART !== "undefined")        // masa central + manzana en órbita
+      wrap.insertAdjacentHTML("beforeend", FIS_ART.art);
+    if(id === "trig" && typeof TRIG_ART !== "undefined")      // ángulos desde un vértice + rótulos flotantes
+      wrap.insertAdjacentHTML("beforeend", TRIG_ART.art);
+    if(id === "int" && typeof INT_ART !== "undefined")        // columnas de Riemann bajo la curva
+      wrap.insertAdjacentHTML("beforeend", INT_ART.art);
     return wrap;
   },
 
@@ -246,11 +293,41 @@ const MapScreen = {
     const host = this.el.querySelector("#m-branches");
     BRANCH_IDS.forEach(id=>{
       const p = this._branchPos(id);
-      const node = this._bubble(id, 132, p.x, p.y, "m-branch");
+      const node = this._bubble(id, this.BD, p.x, p.y, "m-branch");
       host.appendChild(node);
       this.nodes[id] = node;
     });
+    this._buildMid(host);
   },
+
+  // Nodos amarillos fijos sobre la línea Matemáticas → rama (hoy: Aritmética entre Matemáticas y Álgebra).
+  // Siempre se ven, estén o no abiertas las ramas.
+  _buildMid(host){
+    this.midNodes = {};
+    BRANCH_IDS.forEach(bid=>{
+      (SUBJECTS[bid].extras || []).filter(e => e[2] === "mid").forEach(([id])=>{
+        const bp = this._branchPos(bid);
+        const BR = this.BD/2;
+        const dx = bp.x - this.CX, dy = bp.y - this.CY, len = Math.hypot(dx, dy);
+        const gap = len - this.CR - BR;
+        const size = Math.min(this.MIDD, Math.floor(gap - 24));        // burbuja pequeña: se revela al hacerle clic
+        const d = this.CR + gap/2;
+        const x = this.CX + dx/len*d, y = this.CY + dy/len*d;
+        const node = this._bubble(id, size, x, y, "m-extra m-mid");
+        node.title = SUBJECTS[id].label;
+        host.appendChild(node);
+        this.midNodes[id] = { node, lv:"a", pos:{ x, y, d:size }, parent:bid };
+      });
+    });
+  },
+
+  // Busca un nodo extra o amarillo por id
+  _ex(id){ return this.extraNodes[id] || this.midNodes[id] || null; },
+  _exPos(id){ const m = this.midNodes[id]; return this.extraPos[id] || (m && m.pos) || null; },
+
+  // Brillo amarillo de Álgebra: solo hasta el primer clic en ella
+  _hintDone(){ try{ return !!localStorage.getItem(this.HINT_KEY); }catch(e){ return !!this._hd; } },
+  _markHint(){ this._hd = true; try{ localStorage.setItem(this.HINT_KEY, "1"); }catch(e){} },
 
   _line(x1, y1, x2, y2, color, dashed){
     const dx = x2-x1, dy = y2-y1;
@@ -285,31 +362,21 @@ const MapScreen = {
     const cur = SUBJECTS[this.branch];
     const ring = cur.extras.filter(e => e[2] !== "mid");      // los que van en el anillo exterior
     const n = ring.length;
-    const offs = n === 3 ? [-20, 0, 20] : [-14, 14];
+    const offs = n === 3 ? [-22, 0, 22] : [-18, 18];
     const bp = this._branchPos(cur.id);
     const colors = { a:"#7CF0C9", m:"#8AA4FF", b:"#5A627C" };
     let ri = 0;
     cur.extras.forEach((ex)=>{
       const [id, lv, where] = ex;
-      let size, x, y;
-      if(where === "mid"){
-        // Sobre la línea Matemáticas → rama, centrada en el hueco entre ambas burbujas
-        const CR = 78, BR = 66;                                // radios: burbuja central y de rama
-        const dx = bp.x - this.CX, dy = bp.y - this.CY, len = Math.hypot(dx, dy);
-        const gap = len - CR - BR;
-        size = Math.min(88, Math.floor(gap - 24));
-        const d = CR + gap/2;
-        x = this.CX + dx/len*d;
-        y = this.CY + dy/len*d;
-      } else {
-        size = REL_LEVELS[lv].size;
-        const t = (cur.ang + offs[ri++]) * Math.PI / 180;
-        x = this.CX + this.ORX*Math.cos(t);
-        y = this.CY + this.ORY*Math.sin(t);
-      }
+      if(where === "mid") return;                       // el nodo amarillo es fijo (ver _buildMid)
+      const size = REL_LEVELS[lv].size;
+      const t = (cur.ang + offs[ri++]) * Math.PI / 180;
+      const k = cur.push || 0;                          // el anillo de subtemas también se aleja si la rama se alejó
+      const x = this.CX + (this.ORX + k)*Math.cos(t);
+      const y = this.CY + (this.ORY + k)*Math.sin(t);
       const node = this._bubble(id, size, x, y, "m-extra");
       host.appendChild(node);
-      if(where !== "mid") lines.appendChild(this._line(bp.x, bp.y, x, y, colors[lv], lv === "b"));
+      lines.appendChild(this._line(bp.x, bp.y, x, y, colors[lv], lv === "b"));
       this.extraNodes[id] = { node, lv };
       this.extraPos[id] = { x, y, d:size };
     });
@@ -344,8 +411,9 @@ const MapScreen = {
   select(id){
     if(this.focus === id){ this.enter(id); return; }   // segundo clic
     const s = SUBJECTS[id];
+    if(id === "alg") this._markHint();                 // ya sabe por dónde empezar: se apaga el brillo
     if(s.kind === "branch") this.branch = id;
-    else if(!this.extraNodes[id]) return;
+    else if(!this._ex(id)) return;
     this.focus = id;
     this.render();
   },
@@ -358,14 +426,8 @@ const MapScreen = {
 
   enter(id){
     const s = SUBJECTS[id];
-    // Aritmética: aún no tiene curso, pero sí ya tiene su constelación de temas (vista previa, sin lecciones/ejercicios)
-    if(id === "ari" && isUnlocked(id)){
-      this.el.classList.add("is-leaving");
-      setTimeout(()=> this.openCourse(id), 320);
-      return;
-    }
     if(!isUnlocked(id) || !s.available){
-      const n = (this.nodes[id] || (this.extraNodes[id] && this.extraNodes[id].node));
+      const ex = this._ex(id), n = (this.nodes[id] || (ex && ex.node));
       if(n){ n.classList.remove("m-shake"); void n.offsetWidth; n.classList.add("m-shake"); }
       const box = this.panel && this.panel.querySelector(".m-lock");
       if(box){ box.classList.remove("m-shake"); void box.offsetWidth; box.classList.add("m-shake"); }
@@ -383,7 +445,7 @@ const MapScreen = {
     if(!isUnlocked(id)) return;          // nunca abrir una materia bloqueada
     this.hide();
     if(id === "calc"){ Constellation.show(); }
-    else if(id === "ari"){ AriConstellation.show(); }
+    if(id === "ari"){ AriScreen.show(); }
   },
 
   // ---------------- dibujo ----------------
@@ -397,8 +459,19 @@ const MapScreen = {
     BRANCH_IDS.forEach(id=>{
       const node = this.nodes[id];
       const rel = b && id !== b ? SUBJECTS[b].rel[id] : null;
-      node.className = "m-bubble m-branch" + (rel ? " lv-" + rel : "") + (id === b ? " is-open" : "") +
+      const hint = id === "alg" && !this._hintDone() && !this.intro && !this.el.classList.contains("is-bh");
+      node.className = "m-bubble m-branch" + (hint ? " m-nudge" : "") + (rel ? " lv-" + rel : "") + (id === b ? " is-open" : "") +
         (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "") + (isUnlocked(id) ? "" : " is-locked");
+      this._fill(node, id, f === id);
+      if(hint){
+        const btn = node.querySelector(".m-bubble-btn");
+        btn.setAttribute("aria-label", btn.getAttribute("aria-label") + ". Sugerida para empezar");
+        node.title = "Empieza aquí";
+      } else node.removeAttribute("title");
+    });
+    Object.keys(this.midNodes).forEach(id=>{            // nodo amarillo fijo
+      const { node } = this.midNodes[id];
+      node.className = "m-bubble m-extra m-mid" + (subjectPct(id) >= 100 ? " m-mid-done" : "") + (f === id ? " is-focus" : "") + (f && f !== id ? " is-dim" : "") + (isUnlocked(id) ? "" : " is-locked");
       this._fill(node, id, f === id);
     });
     Object.keys(this.extraNodes).forEach(id=>{
@@ -438,49 +511,50 @@ const MapScreen = {
   _applyView(){
     const vw = window.innerWidth, vh = window.innerHeight;
     const small = vw < 820;
-    const compact = small || vh < 560;                 // celular (vertical u horizontal)
     const short = vh < 560;                            // celular en horizontal
-    // En celular solo se encuadra el racimo (centro + 5 ramas), no todo el lienzo de 1280x800
-    const bx = 317, by = 169, bw = 646, bh = 430;
-    const topPad = compact ? (short ? 56 : 140) : 70;
-    const botPad = compact ? (short ? 16 : Math.round(Math.min(330, Math.max(200, vh*0.36)))) : 80;
-    const availH = Math.max(120, vh - topPad - botPad);
-    const fit = compact
-      ? Math.max(0.25, Math.min((vw - 24) / bw, availH / bh))
-      : Math.max(0.25, Math.min(vw / this.W, availH / this.H));
-    let tx, ty, S;
+    const compact = small || short;                    // celular (vertical u horizontal)
     this.el.classList.toggle("m-compact", compact);
     this.el.classList.toggle("m-short", short);
+    // en celular las burbujas se agrandan en la vista general (al hacer zoom vuelven a su tamaño)
+    this.el.style.setProperty("--bs", compact && !this.intro && !this.focus ? this.BS : 1);
+    const topPad = 70, botPad = 80;
+    const availH = vh - topPad - botPad;
+    const fit = Math.max(0.25, Math.min(vw / this.W, availH / this.H));
+    let tx, ty, S;
 
     if(this.intro){
       const want = small ? Math.min(vw*0.8, vh*0.5) : Math.min(vh*0.64, vw*0.5);
-      S = want / 156;
+      S = want / (this.CR*2);
       tx = vw/2 - this.CX*S;
       ty = vh/2 - this.CY*S;
     } else if(!this.focus){
-      S = fit;
+      let hx = 0, hy = 0;                                                  // mitad del ancho/alto que ocupan las ramas + margen
+      BRANCH_IDS.forEach(b=>{ const q = this._branchPos(b); hx = Math.max(hx, Math.abs(q.x - this.CX)); hy = Math.max(hy, Math.abs(q.y - this.CY)); });
+      const k = compact ? this.BS : 1, m = compact ? 6 : 22;
+      hx += this.BD*k/2 + m; hy += this.BD*k/2 + m;
+      let oT = 44, oB = 44;                                                // en la vista general se aprovecha casi toda la altura
       if(compact){
-        tx = vw/2 - (bx + bw/2)*S;
-        ty = topPad + availH/2 - (by + bh/2)*S;
-      } else {
-        tx = (vw - this.W*fit) / 2;
-        ty = topPad + (availH - this.H*fit) / 2;
+        // se deja libre la cabecera y, en vertical, la franja de abajo donde viven el Desafío y la nebulosa de la racha
+        const top = this.el.querySelector(".m-top"), sk = this.el.querySelector("#m-streak");
+        oT = ((top && top.offsetHeight) || 56) + 4;
+        oB = short ? 12 : (sk && sk.offsetHeight ? this.el.clientHeight - sk.offsetTop + 4 : 150);
       }
+      const oH = Math.max(120, vh - oT - oB), oW = compact ? vw - 12 : vw;
+      S = Math.min(oW / (2*hx), oH / (2*hy));
+      tx = vw/2 - this.CX*S;
+      ty = oT + oH/2 - this.CY*S;
     } else {
       const id = this.focus;
       let p, d;
-      if(SUBJECTS[id].kind === "branch"){ p = this._branchPos(id); d = 132; }
-      else { p = this.extraPos[id]; d = p.d; }
-      const portraitSmall = small && !short;
-      const want = portraitSmall ? Math.min(vw*0.46, vh*0.26) : Math.min(vh*0.5, vw*0.24);
+      if(SUBJECTS[id].kind === "branch"){ p = this._branchPos(id); d = this.BD; }
+      else { p = this._exPos(id); d = p.d; }
+      const want = small ? Math.min(vw*0.46, vh*0.26) : Math.min(vh*0.38, vw*0.24);
       S = Math.max(fit, want / d);
-      const sx = portraitSmall ? vw/2 : vw*0.27;
-      const sy = portraitSmall ? vh*0.27 : vh*0.5;
+      const sx = small ? vw/2 : vw*0.31;
+      const sy = small ? vh*0.27 : vh*0.5;
       tx = sx - p.x*S;
       ty = sy - p.y*S;
     }
-    // textos más grandes dentro de las burbujas cuando el mapa se ve reducido
-    this.el.style.setProperty("--tb", compact && !this.focus ? Math.max(1, Math.min(1.5, 0.8 / S)).toFixed(2) : "1");
     this.world.style.transform = `translate(${tx}px,${ty}px) scale(${S})`;
   },
 
@@ -507,6 +581,8 @@ const MapScreen = {
       const chips = Object.keys(s.rel).map(rid =>
         `<span class="m-chip lv-${s.rel[rid]}"><i></i>${esc(SUBJECTS[rid].label)}</span>`).join("");
       related = `<h3>Se relaciona con</h3><div class="m-chips">${chips}</div>`;
+    } else if(this.midNodes[id]){
+      related = "";                                   // el nodo base no muestra posición ni relación
     } else if(this.branch){
       const lv = this.extraNodes[id] ? this.extraNodes[id].lv : "b";
       related = `<h3>Relación con ${esc(SUBJECTS[this.branch].label)}</h3><div class="m-chips"><span class="m-chip lv-${lv}"><i></i>${REL_LEVELS[lv].label}</span></div>`;
@@ -514,9 +590,7 @@ const MapScreen = {
 
     const miss = missingReqs(id);
     const locked = miss.length > 0;
-    const status = locked ? `Bloqueada` : id === "ari"
-      ? `Constelación de temas · curso próximamente`
-      : s.available
+    const status = locked ? `Bloqueada` : s.available
       ? `Disponible · ${BLOCKS.length} bloques`
       : `Próximamente`;
     const lockBox = locked
@@ -525,8 +599,6 @@ const MapScreen = {
       : "";
     const action = locked
       ? `<button type="button" class="m-btn" data-act="enter" aria-disabled="true">🔒 Bloqueada</button>`
-      : id === "ari"
-      ? `<button type="button" class="m-btn m-btn-primary" data-act="enter">Ver constelación de temas</button>`
       : s.available
       ? `<button type="button" class="m-btn m-btn-primary" data-act="enter">Entrar al curso</button>`
       : `<button type="button" class="m-btn" data-act="enter" aria-disabled="true">Curso en preparación</button>`;
@@ -549,6 +621,7 @@ const MapScreen = {
         <span><i class="dot lv-a"></i>Muy relacionada</span>
         <span><i class="dot lv-m"></i>Relacionada</span>
         <span><i class="dot lv-b"></i>Poco relacionada</span>
+        ${Object.keys(this.midNodes).some(k => subjectPct(k) < 100) ? `<span><i class="dot mid"></i>Materia base</span>` : ""}
         ${bh ? "" : `<span><i class="dot ring"></i>Anillo = completado</span>`}
       </div>
       <div class="m-actions">${action}<span class="m-tip">o toca de nuevo la burbuja</span></div>

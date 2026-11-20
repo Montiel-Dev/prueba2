@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — nebulosas de la racha
+   ASTRO-matiks — nebulosas de la racha
    La nebulosa que flota en el mapa cambia según los días
    seguidos de estudio. Son dibujos propios (SVG), inspirados
    en cada objeto, no fotografías.

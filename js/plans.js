@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — Planes de estudio por institución
+   ASTRO-matiks — Planes de estudio por institución
    El contenido (BLOCKS en data.js) no cambia. Un plan es solo
    una "lente": define las UNIDADES de tu institución, en su orden
    oficial, y qué bloques del Dojo cubren cada una.
@@ -157,7 +157,7 @@ const Plans = {
     const shell = (inner)=>{
       root.hidden = false; document.body.classList.add("onboarding");
       root.innerHTML = `<div class="ob-card" role="dialog" aria-modal="true" aria-labelledby="ob-t">
-        <div class="ob-brand"><span class="brand-mark">d/dx</span> Derivadas Dojo</div>${inner}
+        <div class="ob-brand"><span class="brand-mark">d/dx</span> ASTRO-matiks</div>${inner}
         ${canCancel ? '<button class="ob-link" id="ob-cancel" type="button">Cancelar</button>' : ""}</div>`;
       const c = document.getElementById("ob-cancel");
       if(c) c.onclick = ()=>{ root.innerHTML = ""; root.hidden = true; document.body.classList.remove("onboarding"); };

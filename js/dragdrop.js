@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — constructor de fichas (drag & drop)
+   ASTRO-matiks — constructor de fichas (drag & drop)
    Funciona arrastrando (escritorio) o tocando (móvil): un
    clic/tap en una ficha de la bolsa la coloca en el destino;
    un clic/tap en una ficha colocada la regresa a la bolsa.

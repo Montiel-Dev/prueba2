@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — el Sol-faro (burbuja central) y el agujero negro
+   ASTRO-matiks — el Sol-faro (burbuja central) y el agujero negro
    - El color de la estrella evoluciona con el % total de la materia,
      como las estrellas reales según su temperatura:
      0 % roja (M) → naranja (K) → amarilla (G) → blanca (A) → blanco-azulada (B, 100 %).

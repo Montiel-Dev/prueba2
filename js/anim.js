@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — animaciones del desarrollo (sin efectos ni audio)
+   ASTRO-matiks — animaciones del desarrollo (sin efectos ni audio)
    UNA sola expresión que se transforma en su sitio: los términos se
    mueven (por ejemplo, cruzan el "="), cambian de signo, se tachan y
    se cancelan, el exponente baja y se reduce, la fracción se simplifica.

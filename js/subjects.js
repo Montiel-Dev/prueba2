@@ -1,6 +1,6 @@
 /* =========================================================
-   Derivadas Dojo — materias del mapa de inicio
-   Cada materia es una burbuja. Las "ramas" son las 5 burbujas
+   ASTRO-matiks — materias del mapa de inicio
+   Cada materia es una burbuja. Las "ramas" son las 6 burbujas
    principales alrededor de Matemáticas; los "extras" aparecen
    en el anillo exterior al abrir una rama.
 
@@ -14,6 +14,7 @@
    exige Geometría al 50%). Los requisitos sin "min" son solo
    recomendados (por eso Cálculo diferencial, el único curso con
    contenido hoy, siempre se puede abrir).
+   push: px extra que se aleja del Sol (hoy Cálculo diferencial y Trigonometría).
    rel: qué tan relacionada está cada rama con ésta
         (a = muy, m = relacionada, b = poco).
    ========================================================= */
@@ -21,60 +22,71 @@
 const SUBJECTS = {
   // ---------- ramas ----------
   calc:{
-    id:"calc", label:"Cálculo diferencial", kind:"branch", ang:-90, available:true,
+    id:"calc", label:"Cálculo diferencial", kind:"branch", ang:-90, push:56, available:true,
     desc:"Derivadas paso a paso: regla de la potencia, producto y cociente, cadena, trigonométricas, exponenciales e implícitas.",
     requisites:[
       {id:"alg",  text:"Factorizar y manejar exponentes"},
       {id:"trig", text:"Razones trigonométricas básicas"},
       {title:"Funciones", text:"Evaluar y graficar funciones sencillas"}
     ],
-    rel:{int:"a", alg:"a", trig:"m", geo:"b"},
-    extras:[["gan","m"],["fis","b"]]
+    rel:{int:"a", alg:"a", trig:"m", geo:"b", fis:"a"},
+    extras:[["gan","m"],["est","b"]]
   },
   int:{
-    id:"int", label:"Cálculo integral", kind:"branch", ang:-18, available:false,
+    id:"int", label:"Cálculo integral", kind:"branch", ang:-40, available:false,
     desc:"Integrales y áreas bajo la curva: el camino inverso a la derivada.",
     requisites:[
       {id:"calc", min:100, text:"Reglas de derivación"},
       {id:"alg",  min:50, text:"Manipular expresiones algebraicas"},
       {id:"trig", min:50, text:"Identidades trigonométricas básicas"}
     ],
-    rel:{calc:"a", alg:"m", trig:"m", geo:"b"},
-    extras:[["ser","m"],["fis","b"]]
+    rel:{calc:"a", alg:"m", trig:"m", geo:"b", fis:"m"},
+    extras:[["ser","m"],["est","m"]]
   },
   geo:{
-    id:"geo", label:"Geometría", kind:"branch", ang:54, available:false,
+    id:"geo", label:"Geometría", kind:"branch", ang:40, available:false,
     desc:"Figuras, ángulos, áreas y volúmenes.",
     requisites:[
       {id:"ari", min:50, text:"Operaciones y proporciones"},
       {id:"alg", min:50, text:"Despejar ecuaciones simples"}
     ],
-    rel:{trig:"a", alg:"m", calc:"b", int:"b"},
-    extras:[["gan","a"],["fis","b"]]
+    rel:{trig:"a", alg:"m", calc:"b", int:"b", fis:"b"},
+    extras:[["gan","a"],["est","b"]]
   },
   trig:{
-    id:"trig", label:"Trigonometría", kind:"branch", ang:126, available:false,
+    id:"trig", label:"Trigonometría", kind:"branch", ang:90, push:56, available:false,
     desc:"Razones trigonométricas, identidades y el círculo unitario.",
     requisites:[
       {id:"geo", min:50, text:"Triángulos y ángulos"},
       {id:"alg", min:50, text:"Resolver ecuaciones simples"}
     ],
-    rel:{geo:"a", calc:"m", alg:"m", int:"m"},
-    extras:[["gan","m"],["fis","b"]]
+    rel:{geo:"a", calc:"m", alg:"m", int:"m", fis:"m"},
+    extras:[["gan","m"],["est","b"]]
   },
   alg:{
-    id:"alg", label:"Álgebra", kind:"branch", ang:198, available:false,
+    id:"alg", label:"Álgebra", kind:"branch", ang:140, available:false,
     desc:"Expresiones, ecuaciones y factorización, practicando con ejercicios guiados.",
     requisites:[
       {id:"ari", min:50, text:"Fracciones, potencias y signos"}
     ],
-    rel:{calc:"a", trig:"m", geo:"m", int:"m"},
+    rel:{calc:"a", trig:"m", geo:"m", int:"m", fis:"b"},
     extras:[["ari","a","mid"],["alin","m"],["est","b"]]   // "mid": Aritmética va sobre la línea Matemáticas–Álgebra
+  },
+
+  fis:{
+    id:"fis", label:"Física", kind:"branch", ang:220, available:false,
+    desc:"Movimiento, fuerzas y energía.",
+    requisites:[
+      {id:"alg",  min:50, text:"Despejar variables"},
+      {id:"trig", min:50, text:"Descomponer vectores"}
+    ],
+    rel:{calc:"a", int:"m", trig:"m", geo:"m", alg:"b"},
+    extras:[["alin","m"],["gan","b"]]
   },
 
   // ---------- extras (anillo exterior) ----------
   ari:{
-    id:"ari", label:"Aritmética", kind:"extra", available:false,
+    id:"ari", label:"Aritmética", kind:"extra", available:true,
     desc:"Operaciones básicas, fracciones y proporciones.",
     requisites:[]
   },
@@ -87,8 +99,8 @@ const SUBJECTS = {
     ]
   },
   est:{
-    id:"est", label:"Estadística", kind:"extra", available:false,
-    desc:"Datos, promedios y probabilidad.",
+    id:"est", label:"Probabilidad y estadística", kind:"extra", available:false,
+    desc:"Probabilidad, datos, promedios y distribuciones.",
     requisites:[
       {id:"ari", min:50, text:"Porcentajes y proporciones"},
       {id:"alg", min:50, text:"Despejar y evaluar fórmulas"}
@@ -109,24 +121,16 @@ const SUBJECTS = {
       {id:"calc", min:100, text:"Límites y derivadas"},
       {id:"alg",  min:50, text:"Sumas y patrones algebraicos"}
     ]
-  },
-  fis:{
-    id:"fis", label:"Física", kind:"extra", available:false,
-    desc:"Movimiento, fuerzas y energía.",
-    requisites:[
-      {id:"alg",  min:50, text:"Despejar variables"},
-      {id:"trig", min:50, text:"Descomponer vectores"}
-    ]
   }
 };
 
-const BRANCH_IDS = ["calc","int","geo","trig","alg"];
+const BRANCH_IDS = ["calc","int","geo","trig","alg","fis"];
 
 // Texto de cada nivel de relación
 const REL_LEVELS = {
-  a:{ label:"Muy relacionada",  size:112 },
-  m:{ label:"Relacionada",      size:104 },
-  b:{ label:"Poco relacionada", size:96  }
+  a:{ label:"Muy relacionada",  size:126 },
+  m:{ label:"Relacionada",      size:118 },
+  b:{ label:"Poco relacionada", size:110 }
 };
 
 // Progreso real (0-100). Hoy solo Cálculo diferencial tiene contenido.

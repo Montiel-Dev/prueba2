@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pago seguro — Derivadas Dojo Pro</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script>try{var t=localStorage.getItem("dojo-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/arcade.css">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+<div class="wrap wide">
+  <div class="bar">
+    <a class="back" id="cancel" href="arcade.html">← Cancelar y volver</a>
+    <span class="brand"><span class="mark">d/dx</span> Dojo Pro</span>
+    <span class="sim-tag">PAGO SIMULADO</span>
+    <button class="theme-btn" id="btn-theme" type="button" aria-label="Cambiar tema" title="Tema claro / oscuro">◐</button>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="co">
+    <aside class="card sum">
+      <div class="eyebrow">Resumen del pedido</div>
+      <h2>Arcade Pro</h2>
+      <p class="mu" style="margin:0">Pago único · acceso permanente en este navegador</p>
+      <div class="price">$49.00 <small class="mu" style="font:500 14px var(--font-ui)">MXN</small></div>
+      <ul class="feat">
+        <li><i>♥</i><div><b>Vidas infinitas</b><span>En el Modo Vidas, los errores ya no te quitan vidas: practica sin parar.</span></div></li>
+        <li><i>⏱</i><div><b>Mini-exámenes cronometrados</b><span>5, 10 o 20 preguntas, sin pistas, con nota, estrellas y corrección.</span></div></li>
+        <li><i>★</i><div><b>Insignia PRO</b><span>Se muestra en todo el Dojo.</span></div></li>
+      </ul>
+      <div class="lines">
+        <div><span class="mu">Subtotal</span><span>$42.24</span></div>
+        <div><span class="mu">IVA (16%)</span><span>$6.76</span></div>
+        <div class="tot"><span>Total</span><span>$49.00 MXN</span></div>
+      </div>
+      <p class="fa" style="font-size:12.5px;margin:14px 0 0">Esto es una demostración. No se cobra dinero real ni se guardan datos de tu tarjeta.</p>
+    </aside>
+
+    <main class="card" id="panel" aria-live="polite"></main>
+  </div>
+</div>
+<script src="js/pay.js"></script>
+<script>
+/* =========================================================
+   Checkout simulado de Dojo Pro.
+   - Valida tarjeta (Luhn), vencimiento, CVV y correo como un checkout real.
+   - El resultado depende del titular, igual que las tarjetas de prueba de Mercado Pago:
+       APRO = aprobado · OTHE = rechazado · FUND = sin fondos · SECU = CVV inválido
+       EXPI = vencida  · CONT = pendiente · otro nombre = aprobado
+   - Al aprobarse guarda el comprobante (Pay.grant) y desbloquea vidas infinitas + Examen.
+   - Nunca se guarda el número completo ni el CVV: solo marca y últimos 4 dígitos.
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const AMOUNT = 49, CURRENCY = 'MXN';
+
+/* a dónde volver: solo páginas .html del mismo sitio */
+const nextRaw = new URLSearchParams(location.search).get('next') || 'arcade.html';
+const NEXT = /^[a-z0-9._-]+\.html$/i.test(nextRaw) ? nextRaw : 'arcade.html';
+$('cancel').href = NEXT;
+
+const TESTS = [
+  { label:'Aprobada',        num:'5474 9254 3267 0366', name:'APRO', exp:'11/30', cvv:'123' },
+  { label:'Visa aprobada',   num:'4075 5957 1648 3764', name:'APRO', exp:'11/30', cvv:'123' },
+  { label:'Rechazada',       num:'5474 9254 3267 0366', name:'OTHE', exp:'11/30', cvv:'123' },
+  { label:'Sin fondos',      num:'5474 9254 3267 0366', name:'FUND', exp:'11/30', cvv:'123' },
+  { label:'Pendiente',       num:'5474 9254 3267 0366', name:'CONT', exp:'11/30', cvv:'123' }
+];
+
+/* ---------- utilidades de tarjeta ---------- */
+function brandOf(d){
+  if(/^4/.test(d)) return 'visa';
+  if(/^(5[1-5]|2[2-7])/.test(d)) return 'mc';
+  if(/^3[47]/.test(d)) return 'amex';
+  return '';
+}
+const BRAND_NAME = { visa:'VISA', mc:'Mastercard', amex:'AMEX', '':'' };
+function fmtNumber(d, brand){
+  d = d.slice(0, brand==='amex' ? 15 : 16);
+  if(brand==='amex') return [d.slice(0,4), d.slice(4,10), d.slice(10)].filter(Boolean).join(' ');
+  return d.replace(/(.{4})/g,'$1 ').trim();
+}
+function luhn(d){
+  let t = 0, dbl = false;
+  for(let i=d.length-1;i>=0;i--){ let n = +d[i]; if(dbl){ n*=2; if(n>9) n-=9; } t += n; dbl = !dbl; }
+  return d.length > 0 && t % 10 === 0;
+}
+function expOk(v){
+  const m = /^(\d{2})\/(\d{2})$/.exec(v); if(!m) return false;
+  const mo = +m[1], yr = 2000 + +m[2], now = new Date();
+  if(mo < 1 || mo > 12) return false;
+  return yr > now.getFullYear() || (yr === now.getFullYear() && mo >= now.getMonth()+1);
+}
+
+/* ---------- pasos ---------- */
+function steps(n){
+  const s = ['Carrito','Pago','Confirmación'];
+  $('steps').innerHTML = s.map((t,i)=> i===n ? `<b class="on">${i+1}. ${t}</b>` : `<b>${i+1}. ${t}</b>`).join('<span class="sep">›</span>');
+}
+
+/* ---------- formulario ---------- */
+let banner = '';
+function formView(){
+  steps(1);
+  $('panel').innerHTML = `
+    <div class="row" style="margin-bottom:14px"><h2 style="margin:0">Pagar con tarjeta</h2><span class="fa" style="font-size:13px">🔒 Conexión simulada segura</span></div>
+    ${banner}
+    <div class="testbox"><b>Modo prueba.</b> Toca una opción para rellenar la tarjeta y ver cada resultado:
+      <div class="testbtns">${TESTS.map((t,i)=>`<button type="button" data-t="${i}">${t.label}</button>`).join('')}</div>
+    </div>
+    <div class="ccard" id="cc"><span class="brandtxt" id="cc-brand"></span><div class="chipimg"></div>
+      <div class="num" id="cc-num">•••• •••• •••• ••••</div>
+      <div class="meta"><div>Titular<b id="cc-name">NOMBRE APELLIDO</b></div><div>Vence<b id="cc-exp">MM/AA</b></div></div></div>
+    <form id="f" novalidate autocomplete="on">
+      <div class="field" id="f-email"><label for="email">Correo electrónico</label><input id="email" type="email" autocomplete="email" placeholder="tu@correo.com"><div class="em">Escribe un correo válido.</div></div>
+      <div class="field" id="f-num"><label for="num">Número de tarjeta</label><div class="wrapi"><input id="num" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456"><span class="badge" id="badge"></span></div><div class="em" id="num-em">Número de tarjeta inválido.</div></div>
+      <div class="field" id="f-name"><label for="name">Titular de la tarjeta</label><input id="name" autocomplete="cc-name" placeholder="Como aparece en la tarjeta"><div class="em">Escribe el nombre del titular.</div></div>
+      <div class="two">
+        <div class="field" id="f-exp"><label for="exp">Vencimiento</label><input id="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5"><div class="em">Fecha inválida o vencida.</div></div>
+        <div class="field" id="f-cvv"><label for="cvv">CVV</label><input id="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" type="password"><div class="em">Código inválido.</div></div>
+      </div>
+      <button class="btn gold block lg" id="pay" type="submit">Pagar $49.00 MXN</button>
+      <div class="secure">🔒 Demostración: no se cobra dinero ni se guardan datos de tu tarjeta.</div>
+    </form>`;
+  bindForm();
+}
+
+function bindForm(){
+  const num = $('num'), name = $('name'), exp = $('exp'), cvv = $('cvv');
+  const sync = ()=>{
+    const d = num.value.replace(/\D/g,''), b = brandOf(d);
+    $('cc').className = 'ccard ' + b; $('cc-brand').textContent = BRAND_NAME[b]; $('badge').textContent = BRAND_NAME[b];
+    $('cc-num').textContent = (num.value || '•••• •••• •••• ••••');
+    $('cc-name').textContent = (name.value || 'NOMBRE APELLIDO').toUpperCase();
+    $('cc-exp').textContent = exp.value || 'MM/AA';
+  };
+  num.addEventListener('input', ()=>{ const d = num.value.replace(/\D/g,''); num.value = fmtNumber(d, brandOf(d)); sync(); });
+  name.addEventListener('input', sync);
+  exp.addEventListener('input', ()=>{
+    let d = exp.value.replace(/\D/g,'').slice(0,4);
+    if(d.length === 1 && +d > 1) d = '0' + d;           // 5 → 05
+    exp.value = d.length > 2 ? d.slice(0,2) + '/' + d.slice(2) : d; sync();
+  });
+  cvv.addEventListener('input', ()=>{ cvv.value = cvv.value.replace(/\D/g,'').slice(0,4); });
+  document.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', ()=>{
+    const t = TESTS[+b.dataset.t];
+    num.value = t.num; name.value = t.name; exp.value = t.exp; cvv.value = t.cvv;
+    if(!$('email').value) $('email').value = 'demo@ejemplo.com';
+    num.dispatchEvent(new Event('input')); document.querySelectorAll('.field').forEach(f => f.classList.remove('err'));
+  }));
+  $('f').addEventListener('submit', onSubmit);
+}
+
+function validate(){
+  const d = $('num').value.replace(/\D/g,''), b = brandOf(d);
+  const need = b==='amex' ? 15 : 16;
+  const cvvLen = $('cvv').value.length, cvvNeed = b==='amex' ? 4 : 3;
+  const checks = {
+    'f-email': /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test($('email').value.trim()),
+    'f-num':   d.length === need && luhn(d),
+    'f-name':  $('name').value.trim().length >= 3,
+    'f-exp':   expOk($('exp').value),
+    'f-cvv':   cvvLen === cvvNeed
+  };
+  let first = null;
+  for(const [id, ok] of Object.entries(checks)){
+    $(id).classList.toggle('err', !ok);
+    if(!ok && !first) first = id;
+  }
+  $('num-em').textContent = d.length === need ? 'El número no es válido, revísalo.' : 'El número está incompleto.';
+  if(first) $(first).querySelector('input').focus();
+  return !first;
+}
+
+/* ---------- resultado según el titular (como las tarjetas de prueba de MP) ---------- */
+function outcome(name){
+  const n = name.trim().toUpperCase();
+  const map = {
+    OTHE:{ ok:false, msg:'El banco rechazó el pago. Prueba con otra tarjeta.' },
+    FUND:{ ok:false, msg:'Fondos insuficientes en la tarjeta.' },
+    SECU:{ ok:false, msg:'El código de seguridad (CVV) no es correcto.' },
+    EXPI:{ ok:false, msg:'La tarjeta aparece como vencida.' },
+    CONT:{ ok:null }
+  };
+  return map[n.split(/\s+/)[0]] || { ok:true };
+}
+
+async function onSubmit(ev){
+  ev.preventDefault();
+  if(!validate()) return;
+  const d = $('num').value.replace(/\D/g,'');
+  const card = { brand: brandOf(d) || 'tarjeta', last4: d.slice(-4), email: $('email').value.trim(), name: $('name').value.trim() };
+  const res = outcome(card.name);
+  banner = '';
+  await processing();
+  if(res.ok === true) return success(card);
+  if(res.ok === null) return pending(card);
+  banner = `<div class="alert bad"><b>Pago rechazado.</b> ${res.msg} No se hizo ningún cargo.</div>`;
+  formView();
+  $('email').value = card.email;
+}
+
+/* ---------- procesando ---------- */
+async function processing(){
+  steps(1);
+  const items = ['Verificando datos de la tarjeta','Contactando al banco emisor','Autorizando el pago','Confirmando tu compra'];
+  $('panel').innerHTML = `<div class="proc"><div class="spin"></div><h2>Procesando tu pago…</h2>
+    <p class="mu" style="margin:4px 0 0">No cierres ni recargues esta página.</p>
+    <ul class="psteps">${items.map((t,i)=>`<li id="ps${i}">${t}</li>`).join('')}</ul></div>`;
+  for(let i=0;i<items.length;i++){
+    $('ps'+i).className = 'on'; await sleep(700 + Math.random()*500); $('ps'+i).className = 'done';
+  }
+}
+
+/* ---------- estados finales ---------- */
+const mkId = ()=> 'SIM-' + Date.now().toString().slice(-8) + Math.floor(1000 + Math.random()*9000);
+const fmtDate = d => new Date(d).toLocaleString('es-MX', { dateStyle:'long', timeStyle:'short' });
+
+async function success(card, existing){
+  steps(2);
+  const r = existing || {
+    paymentId: mkId(), amount: AMOUNT, currency: CURRENCY, date: new Date().toISOString(),
+    method: card.brand, last4: card.last4, email: card.email, mode: 'simulado'
+  };
+  if(!existing) Pay.grant(r);
+  // Espera (máx. 5 s) a recibir el pase del servidor antes de mostrar "Continuar", para no navegar a medias.
+  if(!Pay.token()) await Promise.race([Pay.activate({ payment_id: r.paymentId }).catch(()=>false), sleep(5000)]);
+  $('panel').innerHTML = `
+    <div style="text-align:center">
+      <div class="okmark">✓</div>
+      <h2>${existing ? 'Ya tienes Arcade Pro' : '¡Pago aprobado!'}</h2>
+      <p class="mu" style="margin:4px 0 0">${existing ? 'Tu compra de prueba sigue activa.' : 'Gracias por apoyar el Dojo. Ya tienes vidas infinitas y los mini-exámenes.'}</p>
+      <div class="receipt">
+        <div><span>Comprobante</span><b>#${E(r.paymentId)}</b></div>
+        <div><span>Producto</span><span>Arcade Pro</span></div>
+        ${r.last4 ? `<div><span>Método</span><span>${E(String(r.method).toUpperCase())} •••• ${E(r.last4)}</span></div>` : ''}
+        <div><span>Total</span><b>$${Number(r.amount).toFixed(2)} ${E(r.currency)}</b></div>
+        <div><span>Fecha</span><span>${fmtDate(r.date)}</span></div>
+        <div><span>Estado</span><span style="color:var(--success)">● Aprobado (simulado)</span></div>
+      </div>
+      <div class="eyebrow" style="text-align:left">Desbloqueaste</div>
+      <div class="unlock">
+        <a href="vidas.html"><b>♥ Vidas infinitas</b><span>Practica sin quedarte sin vidas</span></a>
+        <a href="examen.html"><b>⏱ Mini-examen</b><span>Cronometrado, tipo examen real</span></a>
+      </div>
+      <a class="btn block lg" href="${NEXT}">Continuar</a>
+      <button class="lnk" type="button" onclick="window.print()">Imprimir comprobante</button>
+    </div>`;
+  if(!existing) confetti();
+}
+
+function pending(card){
+  steps(2);
+  $('panel').innerHTML = `
+    <div style="text-align:center">
+      <div class="okmark pend">⏳</div>
+      <h2>Pago en revisión</h2>
+      <p class="mu">Tu banco está validando el cobro. En un pago real esto puede tardar unos minutos. Aún no se activa Pro.</p>
+      <div class="gap" style="justify-content:center;margin-top:16px">
+        <button class="btn gold" id="approve">Simular aprobación del banco</button>
+        <button class="btn alt" id="back">Probar otra tarjeta</button>
+      </div></div>`;
+  $('approve').onclick = async ()=>{ $('approve').disabled = true; await processing(); success(card); };
+  $('back').onclick = ()=>{ banner = ''; formView(); };
+}
+
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const wrap = document.createElement('div'); wrap.className = 'confetti';
+  const cols = ['#52B8E8','#F0B429','#6FCF97','#ED7FAE','#7FD88F'];
+  for(let i=0;i<70;i++){
+    const p = document.createElement('i');
+    p.style.left = Math.random()*100 + '%'; p.style.background = cols[i%cols.length];
+    p.style.animationDuration = (2 + Math.random()*2) + 's'; p.style.animationDelay = Math.random()*.6 + 's';
+    wrap.appendChild(p);
+  }
+  document.body.appendChild(wrap); setTimeout(()=> wrap.remove(), 5200);
+}
+
+/* ---------- tema ---------- */
+$('btn-theme').onclick = ()=>{
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem('dojo-theme', next); }catch(e){}
+};
+
+/* ---------- arranque ---------- */
+if(Pay.isPro()) success(null, Pay.receipt());
+else formView();
+</script>
+</body>
+</html>

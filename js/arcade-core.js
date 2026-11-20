@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — Arcade (núcleo compartido)
+   ASTRO-matiks — Arcade (núcleo compartido)
    Lo usan arcade.html (hub), vidas.html y examen.html.
    - Estado y persistencia (localStorage)
    - Vidas estilo Duolingo

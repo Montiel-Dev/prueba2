@@ -1,5 +1,5 @@
 /* =========================================================
-   Derivadas Dojo — render de matemáticas
+   ASTRO-matiks — render de matemáticas
    Convierte texto plano ("2x/(x^2+1)", "√(4x−1)", "dy/dx")
    en fórmulas bonitas:
    - fracciones APILADAS (numerador arriba, barra, denominador abajo)

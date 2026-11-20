@@ -1,0 +1,624 @@
+/* =========================================================
+   Derivadas Dojo — interfaz
+   Renderiza la barra lateral y las pantallas dentro de #main.
+   No usa ningún framework: funciones que arman HTML y lo
+   inyectan, más listeners.
+   ========================================================= */
+
+const $main = document.getElementById("main");
+
+const UI = {
+
+  init(){
+    this.renderSidebar();
+    this.showHome();
+  },
+
+  // ---------------- sidebar ----------------
+  renderSidebar(){
+    const reviewCount = Engine.state.reviewQueue.length;
+
+    const nav = document.getElementById("block-nav");
+    nav.innerHTML = "";
+    const units = Plans.units();
+    if(!units){
+      BLOCKS.forEach(block=> nav.appendChild(this._blockBtn(block)));
+    }else{
+      units.forEach((u, i)=>{
+        const head = document.createElement("button");
+        head.className = "unit-head" + (this._activeUnit===i && !this._activeBlockId ? " active" : "") + (u.extra ? " extra" : "") + (u.blocks.length ? "" : " soon");
+        head.innerHTML = `<span class="unit-n">${u.extra ? "+" : i+1}</span><span class="unit-t">${u.title}</span>${u.blocks.length ? "" : '<span class="soon-tag">pronto</span>'}`;
+        head.addEventListener("click", ()=> this.showUnit(i));
+        nav.appendChild(head);
+        u.blocks.forEach(id=>{
+          const block = BLOCKS.find(b=>b.id===id);
+          if(block){ const btn = this._blockBtn(block); btn.classList.add("in-unit"); nav.appendChild(btn); }
+        });
+      });
+    }
+    const pl = document.getElementById("plan-chip");
+    if(pl) pl.textContent = Plans.label();
+
+    document.getElementById("pro-badge").hidden = !Pay.isPro();
+
+    const reviewBtn = document.getElementById("btn-review");
+    document.getElementById("review-count").textContent = reviewCount;
+    reviewBtn.disabled = reviewCount === 0;
+    reviewBtn.onclick = ()=> this.startSession("review", null);
+    const cb = document.getElementById("cb-count"), cr = document.getElementById("cb-review");
+    if(cb) cb.textContent = reviewCount;
+    if(cr) cr.disabled = reviewCount === 0;
+    const ct = document.getElementById("cb-title");
+    if(ct){ const b = BLOCKS.find(x => x.id === this._activeBlockId); ct.textContent = b ? b.title : "Cálculo diferencial"; }
+  },
+
+  _blockBtn(block){
+    const sp = Engine.sectionPercents(block.id), bp = Engine.blockPercent(block.id);
+    const btn = document.createElement("button");
+    btn.className = "block-item" + (this._activeBlockId===block.id ? " active" : "");
+    btn.innerHTML = `
+      <div class="block-item-top">
+        <span class="block-item-title">${block.title}</span>
+        <span class="block-item-pct">${bp}%</span>
+      </div>
+      <div class="block-item-bar"><div class="block-item-bar-fill" style="width:${bp}%"></div></div>
+      <div class="block-item-sub">Lecc. ${sp.lessons}% · Práct. ${sp.practice}% · Exam. ${sp.exam}%</div>
+    `;
+    btn.addEventListener("click", ()=> this.showBlockOverview(block.id));
+    return btn;
+  },
+
+  // ---------------- unidad del plan ----------------
+  showUnit(i){
+    const u = Plans.units()[i], p = Plans.plan();
+    document.body.classList.remove("in-session");
+    this._activeBlockId = null; this._activeUnit = i;
+    this.renderSidebar();
+    $main.innerHTML = `
+      <div class="eyebrow">${u.extra ? "Extensión" : "Unidad " + (i+1)} · ${Plans.label()}</div>
+      <h1>${u.title}</h1>
+      <div class="lesson-card">
+        <h2>Temas de tu programa</h2>
+        <ul class="topic-list">${u.topics.map(t=>`<li>${t}</li>`).join("")}</ul>
+      </div>
+      ${u.blocks.length ? `<div class="lesson-card"><h2>Practica este tema</h2>
+        <div class="action-row" id="unit-blocks"></div></div>`
+      : `<div class="lesson-card soon-card"><h2>Próximamente</h2>
+        <p class="lead">Esta unidad está en tu plan de estudios, pero sus lecciones y ejercicios aún no están en el Dojo.
+        Mientras tanto puedes seguir con las unidades que ya están disponibles.</p>
+        <div class="action-row"><button class="btn btn-primary" id="btn-next-unit">Ir a lo que ya está disponible</button></div></div>`}
+      <p class="pay-fine">Fuente del plan: ${p.source}</p>`;
+    if(u.blocks.length){
+      const box = document.getElementById("unit-blocks");
+      u.blocks.forEach(id=>{ const b = BLOCKS.find(x=>x.id===id); const el = document.createElement("button");
+        el.className = "btn btn-primary"; el.textContent = b.title; el.onclick = ()=> this.showBlockOverview(id); box.appendChild(el); });
+    }else{
+      document.getElementById("btn-next-unit").onclick = ()=>{
+        const k = Plans.units().findIndex(x=>x.blocks.length); k>=0 ? this.showUnit(k) : this.showHome();
+      };
+    }
+  },
+
+  _planCard(){
+    const u = Plans.units();
+    if(!u) return `<div class="lesson-card plan-card"><div class="pay-head"><h2>Recorrido libre</h2></div>
+      <p class="lead">Estás viendo todos los bloques. Elige tu institución para ver los temas en el orden de tu plan.</p>
+      <div class="action-row"><button class="btn btn-ghost" id="btn-plan">Elegir institución</button></div></div>`;
+    return `<div class="lesson-card plan-card">
+      <div class="pay-head"><h2>Tu plan: ${Plans.label()}</h2><span class="sim-tag">${Plans.plan().name}</span></div>
+      <ol class="road">${u.map((x,i)=>`<li class="${x.blocks.length ? "" : "soon"}${x.extra ? " x" : ""}"><button type="button" data-unit="${i}">${x.title}</button></li>`).join("")}</ol>
+      <div class="action-row"><button class="btn btn-ghost" id="btn-plan">Cambiar institución</button></div>
+      <p class="pay-fine">${Plans.sel && !Plans.sel.verified ? "Programa base del nivel: confirma con tu docente los temas de tu plantel. " : ""}Fuente: ${Plans.plan().source}</p></div>`;
+  },
+  _bindPlan(){
+    document.querySelectorAll("[data-unit]").forEach(b=> b.onclick = ()=> this.showUnit(+b.dataset.unit));
+    const c = document.getElementById("btn-plan");
+    if(c) c.onclick = ()=> Plans.openWizard(()=>{ this._activeUnit = null; this.renderSidebar(); this.showHome(); }, true);
+  },
+
+  // ---------------- home ----------------
+  showHome(){
+    document.body.classList.remove("in-session");
+    this._activeBlockId = null;
+    this.renderSidebar();
+    const overall = Engine.overallPercent();
+    const order = Plans.blockOrder().map(id=>BLOCKS.find(b=>b.id===id)).filter(Boolean);
+    let nextBlock = order.find(b=>{
+      const s = Engine.blockPracticeStats(b.id);
+      return s.correct < s.total;
+    }) || order[0];
+
+    // Solo se muestran los bloques que ya tienen avance, y cuánto aportan al total
+    const rows = BLOCKS.map(b => ({ b, sp:Engine.sectionPercents(b.id), bp:Engine.blockPercent(b.id) })).filter(r => r.bp > 0);
+    const progressCard = rows.length ? `<div class="lesson-card">
+        <h2 style="font-size:15px;">Avance por bloque</h2>
+        <div class="pct-table">${rows.map(r => `<div class="pct-row"><span class="pct-name">${r.b.title}</span>${
+          [["Lecciones",r.sp.lessons],["Práctica",r.sp.practice],["Examen",r.sp.exam]].filter(x=>x[1]>0).map(x=>`<span>${x[0]} <b>${x[1]}%</b></span>`).join("")
+        }<span class="pct-block">${r.bp}% <small>· +${(Math.round(r.bp/BLOCKS.length*10)/10)}% al total</small></span></div>`).join("")}</div>
+      </div>` : "";
+
+    $main.innerHTML = `
+      <div class="home-hero">
+        <div class="eyebrow">Tu progreso</div>
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-continue">Continuar: ${nextBlock.title}</button>
+        </div>
+      </div>
+      ${this._planCard()}
+      <div class="lesson-card">
+        <div class="pay-head"><h2>Arcade</h2>${Pay.isPro() ? '<span class="sim-tag" style="color:var(--success);border-color:var(--success)">DESBLOQUEADO</span>' : '<span class="sim-tag">PRO</span>'}</div>
+        <p class="lead">Dos módulos para entrenar al máximo: <strong>Modo Vidas</strong> (ejercicios ilimitados al azar; gratis con 5 vidas, con Pro vidas infinitas) y
+        <strong>Mini-exámenes</strong> cronometrados tipo examen real${Pay.isPro() ? "." : " (con Pro)."}</p>
+        <div class="action-row">
+          ${Pay.isPro()
+            ? '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Modo Vidas</a> <a class="btn btn-primary" href="examen.html" style="text-decoration:none;display:inline-block">Mini-examen</a>'
+            : '<a class="btn btn-primary" href="vidas.html" style="text-decoration:none;display:inline-block">Jugar Modo Vidas</a> <a class="btn btn-ghost" href="arcade.html" style="text-decoration:none;display:inline-block">Ver el Arcade</a>'}
+        </div>
+      </div>
+      <div class="lesson-card">
+        <div class="pay-head"><h2>📷 Escáner de problemas</h2><span class="sim-tag" style="color:var(--accent);border-color:var(--accent)">NUEVO</span></div>
+        <p class="lead">Toma una foto a un problema de derivadas (de tu libro, tarea o examen) y genera
+        <strong>variantes parecidas</strong> — mismo tema, misma dificultad, números distintos — con
+        solución paso a paso, para seguir practicando ese tipo de ejercicio.</p>
+        <div class="action-row">
+          <a class="btn btn-primary" href="camara.html" style="text-decoration:none;display:inline-block">Abrir cámara</a>
+        </div>
+      </div>
+      <!-- TODO (cuando quieras hacerlo Pro): agrega aquí la misma condición que usa
+           el Arcade, p. ej. mostrar "Abrir cámara" solo si Pay.isPro() y si no, un
+           botón de "Desbloquear con Pro" como en js/arcade-core.js (función guard)
+           y arcade.html. El backend (api/variantes.js) también deja lista una nota
+           de dónde validar el pago antes de llamar a la IA. -->
+      ${Pay.cardHTML()}
+      <div class="lesson-card">
+        <h2 style="font-size:15px;color:var(--text-dim);">Cómo leer los colores de las fórmulas</h2>
+        <div class="color-legend">
+          <span><span class="swatch" style="background:var(--amber)"></span> número</span>
+          <span><span class="swatch" style="background:var(--accent)"></span> variable (x, y...)</span>
+          <span><span class="swatch" style="background:var(--exp-color)"></span> exponente (lo que está arriba)</span>
+          <span><span class="swatch" style="background:var(--func-color)"></span> función (sen, cos, ln...)</span>
+        </div>
+      </div>
+      ${progressCard}
+      <div class="home-grid">
+        <div class="home-card total"><h3>Progreso total de la materia</h3><div class="big">${overall}%</div></div>
+      </div>
+    `;
+    document.getElementById("btn-continue").addEventListener("click", ()=> this.showBlockOverview(nextBlock.id));
+    Pay.bind();
+    this._bindPlan();
+  },
+
+  // Aviso al volver del checkout de Mercado Pago
+  showPayResult(r){
+    this.showHome();
+    const texts = {
+      ok: "¡Pago de prueba aprobado! Dojo Pro activado.",
+      pending: "Tu pago quedó pendiente. Cuando se apruebe, vuelve a intentarlo.",
+      rejected: "El pago fue rechazado o cancelado. No se cobró nada.",
+      default: "No pudimos confirmar el pago. No se activó Pro."
+    };
+    const key = r.ok ? "ok" : (texts[r.status] ? r.status : "default");
+    const div = document.createElement("div");
+    div.className = "pay-notice " + (r.ok ? "pay-ok" : "pay-bad");
+    div.textContent = texts[key] + (r.message ? " (" + r.message + ")" : "");
+    $main.prepend(div);
+  },
+
+  // ---------------- block overview ----------------
+  showBlockOverview(blockId){
+    document.body.classList.remove("in-session");
+    this._activeBlockId = blockId;
+    this.renderSidebar();
+    const block = BLOCKS.find(b=>b.id===blockId);
+    const pStats = Engine.blockPracticeStats(blockId);
+    const lStats = Engine.blockLessonStats(blockId);
+    const sp = Engine.sectionPercents(blockId), bp = Engine.blockPercent(blockId);
+    const examBest = Engine.state.blocks[blockId].examBest;
+
+    $main.innerHTML = `
+      <div class="eyebrow">Bloque</div>
+      <h1>${block.title}</h1>
+      <p class="lead">${block.summary}</p>
+      <div class="b-wrap" id="b-sky"></div>
+      <div class="home-grid" style="margin:0 0 28px;">
+        <div class="home-card"><h3>Lecciones (${lStats.done}/${lStats.total})</h3><div class="big">${sp.lessons}%</div></div>
+        <div class="home-card"><h3>Práctica (${pStats.correct}/${pStats.total})</h3><div class="big">${sp.practice}%</div></div>
+        <div class="home-card"><h3>Mini-examen</h3><div class="big">${sp.exam}%</div></div>
+        <div class="home-card total"><h3>Total del bloque</h3><div class="big">${bp}%</div></div>
+      </div>
+      <p class="pay-fine">Toca una estrella para abrir ese tema. Las lecciones traen teoría, ejemplos y animaciones; la práctica y el examen, los ejercicios.</p>
+    `;
+
+    const seenL = Engine.state.blocks[blockId].lessonsSeen;
+    const items = block.lessons.map((lesson, idx) => ({
+      label: lesson.title.replace(/\s*\(.*\)\s*$/, ""),
+      sub: seenL[idx] ? "Vista" : "Lección " + (idx+1),
+      on: !!seenL[idx], pct: seenL[idx] ? 100 : 0,
+      onClick: ()=> this.showLesson(blockId, idx)
+    }));
+    items.push({ label:"Práctica guiada", sub:`${sp.practice}% · ${pStats.total} ejercicios`, on: pStats.done > 0, pct: sp.practice,
+      onClick: ()=> this.startSession("practice", blockId) });
+    items.push({ label:"Mini-examen", sub: examBest ? `Mejor: ${examBest.score}/${examBest.total}` : "Sin presentar", on: !!examBest, pct: sp.exam,
+      onClick: ()=> this.startSession("exam", blockId) });
+    Constellation.mountSky(document.getElementById("b-sky"), items);
+  },
+
+  // ---------------- lesson ----------------
+  showLesson(blockId, idx){
+    document.body.classList.remove("in-session");
+    const block = BLOCKS.find(b=>b.id===blockId);
+    const lesson = block.lessons[idx];
+    this._activeBlockId = blockId;
+    Engine.markLessonSeen(blockId, idx);
+    this.renderSidebar();
+
+    const isLast = idx === block.lessons.length - 1;
+
+    $main.innerHTML = `
+      <div class="eyebrow">${block.title} · Lección ${idx+1} de ${block.lessons.length}</div>
+      <div class="lesson-card">
+        <h2>${lesson.title}</h2>
+        <div class="lesson-body">${fixLesson(lesson.html)}</div>
+        ${ANIM_LESSONS[lesson.title] ? `<div class="anim-slot"><button class="btn btn-amber" id="btn-anim" type="button">▶ Ver animado, paso a paso</button><div id="anim-host"></div></div>` : ""}
+        <div class="lesson-nav">
+          <div class="lesson-dots">
+            ${block.lessons.map((_,i)=>`<span class="lesson-dot${i===idx?' active':''}"></span>`).join("")}
+          </div>
+          <div class="action-row">
+            <button class="btn btn-ghost" id="btn-sky">✦ Temas del bloque</button>
+            ${idx>0 ? `<button class="btn btn-ghost" id="btn-prev">Anterior</button>` : ""}
+            <button class="btn btn-primary" id="btn-next">${isLast ? "Ir a practicar" : "Siguiente"}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const ab = document.getElementById("btn-anim");
+    if(ab) ab.addEventListener("click", ()=>{ ab.style.display = "none"; Anim.mount(document.getElementById("anim-host"), ANIM_LESSONS[lesson.title]); });
+    document.getElementById("btn-sky").addEventListener("click", ()=> this.showBlockOverview(blockId));
+    if(idx>0) document.getElementById("btn-prev").addEventListener("click", ()=> this.showLesson(blockId, idx-1));
+    document.getElementById("btn-next").addEventListener("click", ()=>{
+      if(isLast) this.startSession("practice", blockId);
+      else this.showLesson(blockId, idx+1);
+    });
+  },
+
+  // ---------------- sesión de ejercicios (práctica / examen / repaso) ----------------
+  startSession(mode, blockId){
+    let list;
+    if(mode === "review"){
+      list = Engine.reviewItems().map(r => ({ blockId:r.blockId, exercise:r.exercise }));
+      shuffle(list);
+    } else {
+      const block = BLOCKS.find(b=>b.id===blockId);
+      const items = mode === "exam" ? block.exam : block.practice;
+      list = items.map(ex => ({ blockId, exercise: ex }));
+    }
+    this.session = { mode, blockId, list, index:0, score:0, hintsUsed:0 };
+    this.renderCurrentExercise();
+  },
+
+  renderCurrentExercise(){
+    const s = this.session;
+    s._checked = false;   // FIX: antes nunca se reiniciaba y congelaba el ejercicio siguiente
+    window.scrollTo(0,0);
+    document.body.classList.add("in-session");
+    if(s.index >= s.list.length){
+      return this.finishSession();
+    }
+    const item = s.list[s.index];
+    const ex = item.exercise;
+    if(ex.type === "guided") return this.renderGuided(item);
+    const total = s.list.length;
+    const pct = Math.round((s.index/total)*100);
+
+    const kickerText = {
+      practice: "Práctica guiada",
+      exam: "Mini-examen",
+      review: "Repaso de errores"
+    }[s.mode];
+
+    $main.innerHTML = `
+      <div class="eyebrow">${kickerText} · ${s.index+1} de ${total}</div>
+      <div class="progress-track"><div class="progress-track-fill" style="width:${pct}%"></div></div>
+      <div class="exercise-card">
+        <div class="exercise-kicker">${ex.kicker || ""}</div>
+        ${this.formulaPanel(item.blockId)}
+        ${ex.func ? `<div class="exercise-prompt"><span class="func">${m(ex.func)}</span></div>` : ""}
+        ${ex.context ? `<div class="worked-steps">${ex.context.map(c=>`<div>${m(c)}</div>`).join("")}</div>` : ""}
+        <div class="exercise-prompt">${rich(ex.prompt)}</div>
+        <div id="answer-area"></div>
+        <div id="hint-area"></div>
+        <div id="feedback-area"></div>
+        <div class="action-row" id="action-row">
+          ${s.mode !== "exam" ? `<button class="btn btn-ghost" id="btn-hint" ${!ex.hints ? "disabled" : ""}>Pista</button>` : ""}
+          <button class="btn btn-ghost" id="btn-explain-first" style="display:none;">¿Por qué?</button>
+          <button class="btn btn-primary" id="btn-check">Verificar</button>
+        </div>
+      </div>
+    `;
+
+    const answerArea = document.getElementById("answer-area");
+    let builderHandle = null;
+    let selectedOption = null;
+
+    if(ex.type === "mcq"){
+      const opts = document.createElement("div");
+      opts.className = "options";
+      ex.options.forEach((opt, i)=>{
+        const b = document.createElement("button");
+        b.className = "option";
+        b.innerHTML = m(opt.text);
+        b.addEventListener("click", ()=>{
+          if(s._checked) return;
+          opts.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+          b.classList.add("selected");
+          selectedOption = i;
+        });
+        opts.appendChild(b);
+      });
+      answerArea.appendChild(opts);
+    } else if(ex.type === "build"){
+      const box = document.createElement("div");
+      answerArea.appendChild(box);
+      builderHandle = DragDrop.renderBuilder(box, ex.tokensCorrect, ex.tokensDistractors);
+    }
+
+    const nudge = (msg)=>{
+      document.getElementById("feedback-area").innerHTML = `<div class="nudge" role="status">${msg}</div>`;
+      const card = document.querySelector(".exercise-card");
+      card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+    };
+
+    let hintIndex = 0;
+    const hintBtn = document.getElementById("btn-hint");
+    if(hintBtn){
+      hintBtn.addEventListener("click", ()=>{
+        if(!ex.hints || hintIndex >= ex.hints.length) return;
+        const hintArea = document.getElementById("hint-area");
+        const box = document.createElement("div");
+        box.className = "hint-box";
+        box.innerHTML = `<strong>Pista ${hintIndex+1}:</strong> ${rich(ex.hints[hintIndex])}`;
+        hintArea.appendChild(box);
+        hintIndex++;
+        s.hintsUsed++;
+        if(hintIndex >= ex.hints.length) hintBtn.disabled = true;
+      });
+    }
+
+    document.getElementById("btn-check").addEventListener("click", ()=>{
+      if(s._checked) return;
+
+      let correct = false;
+      if(ex.type === "mcq"){
+        if(selectedOption === null){ nudge("Elige una opción y luego toca Verificar."); return; }
+        correct = !!ex.options[selectedOption].correct;
+        const opts = answerArea.querySelectorAll(".option");
+        opts.forEach((o,i)=>{
+          o.disabled = true;
+          if(ex.options[i].correct) o.classList.add("correct");
+          else if(i===selectedOption) o.classList.add("incorrect");
+        });
+      } else if(ex.type === "build"){
+        if(!builderHandle.isFull()){ nudge("Aún faltan fichas: completa tu respuesta y toca Verificar."); return; }
+        const answer = builderHandle.getAnswer();
+        correct = JSON.stringify(answer) === JSON.stringify(ex.tokensCorrect);
+        builderHandle.lock();
+        builderHandle.markResult(correct);
+      }
+
+      s._checked = true;
+      if(correct) s.score++;
+
+      if(s.mode !== "exam"){
+        Engine.recordPractice(item.blockId, ex.id, correct);
+      }
+      this.renderSidebar();
+
+      const fb = document.getElementById("feedback-area");
+      fb.innerHTML = `
+        <div class="feedback ${correct ? "ok" : "bad"}">
+          <strong>${correct ? "¡Eso es!" : "Casi: mira este detalle"}</strong>
+          ${rich(ex.explanation)}
+          ${correct || s.mode === "exam" ? "" : '<div class="saved-note">↻ Quedó guardado en tu repaso. Equivocarse aquí es normal, y justo así se aprende.</div>'}
+        </div>
+      `;
+
+      const actionRow = document.getElementById("action-row");
+      actionRow.innerHTML = "";
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "btn btn-primary btn-next " + (correct ? "right" : "wrong");
+      nextBtn.textContent = s.index === s.list.length-1 ? "Ver resultados" : "Siguiente ejercicio";
+      nextBtn.addEventListener("click", ()=>{
+        s.index++;
+        this.renderCurrentExercise();
+      });
+      actionRow.appendChild(nextBtn);
+      nextBtn.focus({ preventScroll:true });
+      fb.scrollIntoView({ behavior:"smooth", block:"nearest" });
+      if(!correct){
+        const st = document.getElementById("btn-review");
+        if(st){ st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse"); }
+      }
+    });
+  },
+
+  // ---------------- hoja de fórmulas (visible en práctica Y examen) ----------------
+  formulaPanel(blockId){
+    const b = BLOCKS.find(x=>x.id===blockId);
+    if(!b || !b.formulas) return "";
+    return `<details class="formula-sheet" open><summary>📐 Hoja de fórmulas</summary>${
+      b.formulas.map(f=>`<div class="formula-row"><span class="fname">${f.n}</span>${m(f.f)}</div>`).join("")}</details>`;
+  },
+
+  // ---------------- problema guiado: desarrollo paso a paso, como en papel ----------------
+  renderGuided(item){
+    const s = this.session, ex = item.exercise, exam = s.mode === "exam";
+    const total = s.list.length, pct = Math.round((s.index/total)*100);
+    const st = { i:0, err:0, done:[] };
+    const $ = id => document.getElementById(id);
+    const kick = { practice:"Práctica guiada", exam:"Mini-examen", review:"Repaso de errores" }[s.mode];
+    $main.innerHTML = `
+      <div class="eyebrow">${kick} · ${s.index+1} de ${total}</div>
+      <div class="progress-track"><div class="progress-track-fill" style="width:${pct}%"></div></div>
+      <div class="exercise-card">
+        <div class="exercise-kicker">${ex.kicker || "Resuelve paso a paso"}</div>
+        ${this.formulaPanel(item.blockId)}
+        <div class="exercise-prompt"><span class="func">${m(ex.func)}</span></div>
+        ${ex.prompt ? `<div class="exercise-prompt">${rich(ex.prompt)}</div>` : ""}
+        ${exam ? "" : `<div class="anim-slot"><button class="btn btn-amber" id="btn-ex" type="button">▶ Ver un ejemplo parecido, animado</button><div id="g-anim"></div></div>`}
+        <div class="worked-steps" id="g-done"></div>
+        <div id="g-step"></div>
+        <div id="feedback-area"></div>
+                <div class="action-row" id="action-row"></div>
+      </div>`;
+
+    const drawDone = ()=>{
+      $("g-done").innerHTML = st.done.length
+        ? '<div class="g-title">Tu desarrollo</div>' + st.done.map(d=>`<div><span class="g-lbl">${rich(d.label)}</span> ${m(d.res)}</div>`).join("")
+        : "";
+    };
+    const nudge = msg => {
+      $("feedback-area").innerHTML = `<div class="nudge" role="status">${msg}</div>`;
+      const c = document.querySelector(".exercise-card");
+      c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
+    };
+
+    const showStep = ()=>{
+      const sp = ex.steps[st.i], n = ex.steps.length;
+      let sel = null, bh = null, opts = null;
+      drawDone();
+      $("feedback-area").innerHTML = "";
+      $("g-step").innerHTML = `<div class="g-prompt"><span class="g-num">Paso ${st.i+1} de ${n}</span> ${rich(sp.prompt)}</div><div id="g-ans"></div><div id="g-hint"></div>`;
+      const ans = $("g-ans");
+      if(sp.options){
+        opts = document.createElement("div"); opts.className = "options";
+        shuffle(sp.options.slice()).forEach(o=>{
+          const b = document.createElement("button"); b.className = "option"; b.innerHTML = m(o.text);
+          b._o = o;
+          b.addEventListener("click", ()=>{
+            if(b.disabled) return;
+            opts.querySelectorAll(".option").forEach(x=>x.classList.remove("selected"));
+            b.classList.add("selected"); sel = b;
+          });
+          opts.appendChild(b);
+        });
+        ans.appendChild(opts);
+      } else bh = DragDrop.renderBuilder(ans, sp.tokens, sp.distract || []);
+
+      const row = $("action-row"); row.innerHTML = "";
+      if(!exam && sp.hint){
+        const hb = document.createElement("button"); hb.className = "btn btn-ghost"; hb.id = "btn-hint"; hb.textContent = "Pista";
+        hb.addEventListener("click", ()=>{
+          $("g-hint").innerHTML = `<div class="hint-box"><strong>Pista:</strong> ${rich(sp.hint)}</div>`;
+          s.hintsUsed++; hb.disabled = true;
+        });
+        row.appendChild(hb);
+      }
+      const ck = document.createElement("button"); ck.className = "btn btn-primary"; ck.id = "btn-check"; ck.textContent = "Verificar paso";
+      row.appendChild(ck);
+
+      ck.addEventListener("click", ()=>{
+        let ok;
+        if(sp.options){
+          if(!sel){ nudge("Elige una opción y toca Verificar."); return; }
+          ok = !!sel._o.correct;
+        } else {
+          if(!bh.isFull()){ nudge("Completa tu respuesta con las fichas y toca Verificar."); return; }
+          ok = JSON.stringify(bh.getAnswer()) === JSON.stringify(sp.tokens);
+        }
+        const fb = $("feedback-area");
+        if(!ok){
+          st.err++;
+          fb.innerHTML = `<div class="feedback bad"><strong>Todavía no.</strong> ${exam ? "Revisa la hoja de fórmulas e inténtalo de nuevo." : rich(sp.why)}</div>`;
+          if(sp.options){ sel.classList.remove("selected"); sel.classList.add("incorrect"); sel.disabled = true; sel = null; }
+          else { bh.lock(); ans.innerHTML = ""; bh = DragDrop.renderBuilder(ans, sp.tokens, sp.distract || []); }
+          return;
+        }
+        if(sp.options){
+          opts.querySelectorAll(".option").forEach(x=>{ x.disabled = true; if(x._o.correct) x.classList.add("correct"); });
+        } else { bh.lock(); bh.markResult(true); }
+        st.done.push({ label: sp.label, res: sp.res });
+        fb.innerHTML = `<div class="feedback ok"><strong>¡Correcto!</strong> ${rich(sp.why)}</div>`;
+        row.innerHTML = "";
+        const nx = document.createElement("button"); nx.className = "btn btn-primary btn-next right";
+        nx.textContent = st.i === n-1 ? "Terminar problema" : "Siguiente paso";
+        nx.addEventListener("click", ()=>{ st.i++; st.i < n ? showStep() : finish(); });
+        row.appendChild(nx); nx.focus({ preventScroll:true });
+        fb.scrollIntoView({ behavior:"smooth", block:"nearest" });
+      });
+    };
+
+    const finish = ()=>{
+      const good = st.err === 0;
+      if(good) s.score++;
+      if(!exam) Engine.recordPractice(item.blockId, ex.id, good);
+      this.renderSidebar();
+      drawDone();
+      $("g-step").innerHTML = "";
+      $("feedback-area").innerHTML = `<div class="feedback ${good ? "ok" : "bad"}">
+        <strong>${good ? "¡Problema resuelto sin errores!" : `Resuelto, con ${st.err} intento${st.err>1?"s":""} fallido${st.err>1?"s":""}`}</strong>
+        ${rich(ex.explanation)}
+        ${good || exam ? "" : '<div class="saved-note">↻ Quedó en tu repaso para que lo repitas hasta que salga limpio.</div>'}</div>`;
+      const row = $("action-row"); row.innerHTML = "";
+      const nx = document.createElement("button"); nx.className = "btn btn-primary btn-next " + (good ? "right" : "wrong");
+      nx.textContent = s.index === s.list.length-1 ? "Ver resultados" : "Siguiente problema";
+      nx.addEventListener("click", ()=>{ s.index++; this.renderCurrentExercise(); });
+      row.appendChild(nx); nx.focus({ preventScroll:true });
+    };
+    const eb = $("btn-ex");
+    if(eb) eb.addEventListener("click", ()=>{ eb.style.display = "none"; Anim.mount($("g-anim"), Anim.exampleFor(ex)); });
+    showStep();
+  },
+
+  finishSession(){
+    document.body.classList.remove("in-session");
+    const s = this.session;
+    $main.innerHTML = `<div class="result-hero"><p>Calculando resultados…</p></div>`;
+
+    if(s.mode === "exam"){
+      const pct = Engine.recordExam(s.blockId, s.score, s.list.length);
+      const stars = pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0;   // solo elige el mensaje
+      const block = BLOCKS.find(b=>b.id===s.blockId);
+      this.renderSidebar();
+      $main.innerHTML = `
+        <div class="result-hero">
+          <div class="eyebrow">Mini-examen · ${block.title}</div>
+          <div class="result-score">${s.score}/${s.list.length}</div>
+          <div class="result-stars">${pct}%</div>
+          <p class="pct-note">Avance del bloque: <b>${Engine.blockPercent(s.blockId)}%</b> · Materia: <b>${Engine.overallPercent()}%</b></p>
+          <p class="lead" style="margin:0 auto 18px;">
+            ${stars===3 ? "Dominas este bloque. ¡Listo para el examen real!" :
+              stars===2 ? "Vas muy bien. Repasa lo que fallaste y vuelve a intentarlo." :
+              stars===1 ? "Vas en camino. Vuelve a la práctica guiada antes de reintentar." :
+              "No te desanimes: vuelve a las lecciones y a la práctica guiada, y vuelve a intentarlo."}
+          </p>
+          <div class="action-row" style="justify-content:center;">
+            <button class="btn btn-ghost" id="btn-back">Volver al bloque</button>
+            <button class="btn btn-primary" id="btn-retry">Reintentar examen</button>
+          </div>
+        </div>
+      `;
+      document.getElementById("btn-back").addEventListener("click", ()=> this.showBlockOverview(s.blockId));
+      document.getElementById("btn-retry").addEventListener("click", ()=> this.startSession("exam", s.blockId));
+    } else {
+      this.renderSidebar();
+      const label = s.mode === "review" ? "Repaso de errores" : "Práctica guiada";
+      $main.innerHTML = `
+        <div class="result-hero">
+          <div class="eyebrow">${label}</div>
+          <div class="result-score">${s.score}/${s.list.length}</div>
+          <p class="lead" style="margin:0 auto 18px;">Sesión completada. Tu progreso ya quedó guardado.</p>
+          <div class="action-row" style="justify-content:center;">
+            ${s.blockId ? `<button class="btn btn-ghost" id="btn-back">Volver al bloque</button>` : `<button class="btn btn-ghost" id="btn-home">Ir al inicio</button>`}
+            <button class="btn btn-primary" id="btn-retry">Repetir</button>
+          </div>
+        </div>
+      `;
+      const backBtn = document.getElementById("btn-back") || document.getElementById("btn-home");
+      backBtn.addEventListener("click", ()=> s.blockId ? this.showBlockOverview(s.blockId) : this.showHome());
+      document.getElementById("btn-retry").addEventListener("click", ()=> this.startSession(s.mode, s.blockId));
+    }
+  }
+};
